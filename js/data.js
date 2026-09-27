@@ -47,7 +47,7 @@ export const BUILDINGS = [
 ];
 
 export const PLACES = [
-  { id: 'sac-lib', name: 'SAC & Central Library', short: 'Library', cat: 'study', emoji: '📚', rating: 4.8, busy: 'Lively days', visited: true, desc: 'SAC underground, Library on 1st–2nd floor, Computer Centre on 3rd. One building, three worlds.', hours: '8 AM – 10 PM' },
+  { id: 'sac-lib', name: 'SAC & Central Library', short: 'Library', cat: 'study', emoji: '📚', rating: 4.8, busy: 'Lively days', visited: true, desc: 'Three floors: SAC at ground (Students Activity Center), Central Library on 1st–2nd, Computer Centre on 3rd.', hours: '8 AM – 10 PM' },
   { id: 'canteen', name: 'Student Canteen', short: 'Canteen', cat: 'food', emoji: '🍛', rating: 4.6, busy: 'Busy at lunch', visited: true, desc: 'Rajma chawal, momos, cold coffee up north. Legends are made in this queue.', hours: '8 AM – 8 PM' },
   { id: 'moksha-ground', name: 'Moksha Ground', short: 'Moksha', cat: 'hangout', emoji: '🎭', rating: 4.9, busy: 'Fest season 🔥', visited: true, desc: 'The big central ground — Moksha main stage territory and evening crowds.', hours: 'Open · best at 6 PM' },
   { id: 'amul-ground', name: 'Amul Ground', short: 'Amul', cat: 'hangout', emoji: '🌳', rating: 4.4, busy: 'Chill', visited: false, desc: 'Green breather next to APJ. Frisbee, adda and pre-class naps.', hours: 'Open all day' },

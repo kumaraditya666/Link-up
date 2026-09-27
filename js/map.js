@@ -770,10 +770,10 @@ export function createMap(canvas, opts = {}) {
       el.style.display = 'block';
       el.style.left = ((v.x * 0.5 + 0.5) * state.w) + 'px';
       el.style.top = ((-v.y * 0.5 + 0.5) * state.h) + 'px';
-      el.textContent = (person ? '● ' : '') + text;
+      el.textContent = (person && person !== 'you' ? '● ' : '') + text;
       el.style.opacity = dimmed ? 0.4 : 1;
-      if (person === 'you') { el.style.background = '#b7ff2a'; el.style.borderColor = '#b7ff2a'; el.style.color = '#0b0e05'; }
-      else if (person) { el.style.background = '#0e1405'; el.style.borderColor = '#b7ff2a66'; el.style.color = '#fff'; }
+      if (person === 'you') { el.style.background = '#0b0e05'; el.style.borderColor = '#b7ff2a'; el.style.color = '#b7ff2a'; }
+      else if (person) { el.style.background = '#b7ff2a'; el.style.borderColor = '#b7ff2a'; el.style.color = '#0b0e05'; }
       else { el.style.background = 'rgba(6,10,21,0.8)'; el.style.borderColor = 'rgba(255,255,255,0.18)'; el.style.color = '#e6ebff'; }
     };
     for (const L of labelDefs) {
