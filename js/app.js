@@ -44,6 +44,9 @@ const S = {
   mokshaHomeOff: false,
   liveReq: null,
   profile: store.get('profile', { name: 'Aditya', dept: "CSE '27" }),
+  attendMine: store.get('attendMine', []),
+  group: null, groupInvites: [], groupNames: {}, groupSpot: 'Moksha Ground', groupDur: 60,
+  sessionRoute: false, groupRoute: false,
 };
 const myName = () => (S.profile.name || 'Aditya').slice(0, 24);
 function applyProfileToUI() {
