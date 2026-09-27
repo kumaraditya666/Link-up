@@ -240,6 +240,14 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .mk-ev p{font-size:13px;color:var(--txt);opacity:.85;margin:6px 0}
 .mk-ev .row{display:flex;gap:8px;margin-top:8px;align-items:center}
 .pill.tba{color:#fbbf24;border-color:#fbbf2455;background:#fbbf2412}
+.poll{margin-top:10px;background:#ffffff07;border:1px solid var(--line);border-radius:14px;padding:11px 12px;text-align:left}
+.poll strong{font-size:13px}
+.poll-opt{display:flex;justify-content:space-between;gap:8px;width:100%;border:1px solid var(--line);background:#ffffff08;color:var(--txt);border-radius:10px;padding:8px 10px;font-size:13px;margin-top:8px}
+.poll-opt.mine{border-color:#a3e63588;background:#a3e63512}
+.poll-bar{height:5px;border-radius:99px;background:#ffffff14;margin-top:4px;overflow:hidden}
+.poll-bar i{display:block;height:100%;background:var(--grad)}
+.moment{border-top:1px solid var(--line);padding:9px 0}
+.moment p{margin:4px 0;font-size:14px}
 .pill.upcoming{color:#7dd3fc;border-color:#7dd3fc55;background:#7dd3fc12}
 .pill.ended{color:var(--mut)}
 #mokshaList{max-height:46vh;overflow-y:auto;margin-top:6px}

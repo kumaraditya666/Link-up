@@ -3,6 +3,7 @@ import { ME, SPOTS, FRIENDS, PLACES, EVENTS, TRAILS, THREADS, QUICK, BUILDINGS }
 import { createMap } from './map.js';
 import { route } from './route.js';
 import { Notify, dueReminders } from './notify.js';
+import { Social } from './social.js';
 import { Net } from './net.js';
 import {
   CATEGORIES, VENUES, venueById,
@@ -543,6 +544,7 @@ function startSession(fid, spot, durMin, dir, endsAtOverride = null) {
     totalMin: durMin, startedAt: Date.now(), dir,
   };
   S.outgoing = null;
+  Social.recordLinkup();
   persist(); updateBanner(); renderFriends(); showLinked();
   pushMsg(fid, 'them', `🤝 LINKED UP — ${S.session.spot}! See you in 5?`);
   if (S.activeChat === fid) renderChat();
@@ -662,15 +664,32 @@ $$('#placeSeg button').forEach((b) => (b.onclick = () => {
 }));
 function openPlace(id) {
   const p = PLACES.find((x) => x.id === id);
-  const here = FRIENDS.filter((f) => f.spot.toLowerCase().includes(p.short.toLowerCase().split(' ')[0]) && f.online);
+  const allHere = [...FRIENDS, ...livePeople()].filter((f) => f.spot.toLowerCase().includes(p.short.toLowerCase().split(' ')[0]) && f.online);
+  const ci = Social.checkins()[id] || { count: 20 + (id.length * 7) % 30, me: false };
+  const polls = Social.polls(id);
+  const pollHtml = polls.map((pl) => {
+    const total = pl.options.reduce((a, o) => a + o.v, 0) || 1;
+    const mine = Social.myVote(id, pl.id);
+    return `<div class="poll"><strong>${pl.q}</strong>` + pl.options.map((o, i) => {
+      const pct = Math.round((o.v / total) * 100);
+      return `<button class="poll-opt ${mine === i ? 'mine' : ''}" data-poll="${pl.id}" data-opt="${i}">
+        <span>${o.t}</span><span class="muted">${pct}%</span></button>
+        <div class="poll-bar"><i style="width:${pct}%"></i></div>`;
+    }).join('') + `</div>`;
+  }).join('');
   $('#placeBody').innerHTML = `<div class="place-hero">${p.emoji}</div>
     <h2 style="margin:0 0 4px;letter-spacing:0">${p.name}</h2>
     <p class="muted">★ ${p.rating} · ${p.busy} · ${p.hours}</p>
     <p>${p.desc}</p>
-    <p class="muted">${here.length ? `🟢 ${here.map((f) => f.name.split(' ')[0]).join(', ')} ${here.length === 1 ? 'is' : 'are'} here now` : 'No friends here right now — be the first 👀'}</p>
+    <p class="muted">${allHere.length ? `🟢 ${allHere.map((f) => f.name.split(' ')[0]).join(', ')} ${allHere.length === 1 ? 'is' : 'are'} here now` : 'No friends here right now — be the first 👀'}</p>
+    <div class="row" style="gap:8px;margin-bottom:10px"><button class="mini-btn ${ci.me ? 'go' : ''}" id="placeCheck">🔥 ${ci.count} vibing${ci.me ? ' (you in)' : ''}</button>
+    <span class="muted" style="font-size:12px">Check in to mark the vibe</span></div>
+    ${pollHtml}
     <div class="row2"><button class="btn-decline" id="placeVisit">${S.visited.includes(id) ? '✓ Visited' : 'Mark visited'}</button>
     <button class="btn-primary big" id="placeLu">Link Up here ⚡</button></div>`;
   $('#placeModal').hidden = false;
+  $('#placeCheck').onclick = () => { Social.toggleCheckin(id); openPlace(id); };
+  $$('#placeBody [data-poll]').forEach((b) => (b.onclick = () => { Social.vote(id, b.dataset.poll, +b.dataset.opt); openPlace(id); }));
   $('#placeVisit').onclick = () => {
     if (!S.visited.includes(id)) S.visited.push(id); else S.visited = S.visited.filter((x) => x !== id);
     persist(); renderPlaces(); $('#placeModal').hidden = true;
@@ -685,11 +704,28 @@ function openPlace(id) {
 
 /* ---------- Explore ---------- */
 function renderExplore() {
-  $('#exploreGrid').innerHTML = TRAILS.map((t) => `<div class="card"><div class="row"><div style="flex:1"><h3>${t.title}</h3><small>${t.meta}</small></div><strong style="color:var(--lime)">${t.pct}%</strong></div>
+  const lb = Social.leaderboard([...FRIENDS, ...livePeople()], S.visited.length);
+  const moments = Social.moments();
+  const ago = (t) => { const h = Math.floor((Date.now() - t) / 36e5); return h < 1 ? 'just now' : h + 'h ago'; };
+  $('#exploreGrid').innerHTML = `
+    <div class="card" style="grid-column:1/-1"><h3>⚡ Moments <small class="muted">· expire in 24h</small></h3>
+      <form id="momentForm" style="display:flex;gap:8px;margin:8px 0"><input id="momentIn" maxlength="140" placeholder="What's the vibe on campus?" autocomplete="off" style="flex:1;background:#ffffff0c;border:1px solid var(--line);border-radius:12px;padding:10px 12px;color:#fff;outline:0" /><button class="btn-primary sm">Post</button></form>
+      <div>${moments.slice(0, 5).map((m) => `<div class="moment"><strong>${m.author}</strong> <span class="tag">${(PLACES.find((p) => p.id === m.placeId)?.short) || 'NSUT'}</span><p>${m.text}</p><small class="muted">${ago(m.t)}</small></div>`).join('') || '<p class="muted">No moments yet — post the first one 👆</p>'}</div></div>
+    <div class="card"><h3>🏆 Campus leaderboard</h3>
+      ${lb.slice(0, 5).map((r, i) => `<div class="row" style="gap:8px;margin-top:6px"><strong>${['🥇', '🥈', '🥉', '4.', '5.'][i]}</strong><span style="flex:1">${r.name}${r.me ? ' (you)' : ''} <small class="muted">· ${r.detail}</small></span><strong style="color:var(--lime)">${r.score}</strong></div>`).join(''}</div>
+  ` + TRAILS.map((t) => `<div class="card"><div class="row"><div style="flex:1"><h3>${t.title}</h3><small>${t.meta}</small></div><strong style="color:var(--lime)">${t.pct}%</strong></div>
     <p class="muted">${t.desc}</p>
     <div style="height:8px;border-radius:99px;background:#ffffff14;overflow:hidden"><i style="display:block;height:100%;width:${t.pct}%;background:var(--grad)"></i></div>
     <button class="mini-btn go" style="margin-top:10px" data-trail="${t.title}">Continue →</button></div>`).join('');
   $$('[data-trail]').forEach((b) => (b.onclick = () => toast(`Trail started: ${b.dataset.trail} 🗺️ — check in at each stop!`)));
+  $('#momentForm').onsubmit = (e) => {
+    e.preventDefault();
+    const v = $('#momentIn').value.trim();
+    if (!v) return;
+    Social.postMoment(v, 'moksha-ground', myName());
+    renderExplore();
+    toast('Moment posted ⚡');
+  };
 }
 $('#startTrail').onclick = () => toast('First-Year Survival Trail started! First stop: SAC 🛸');
 
@@ -921,6 +957,7 @@ function openProfile() {
   $('#statEvents').textContent = S.rsvp.length;
   $('#profileNameIn').value = myName();
   $('#profileDeptIn').value = S.profile.dept || '';
+  $('#profileBioIn').value = S.profile.bio || '';
   $('#ntLinkup').checked = Notify.prefs.linkup;
   $('#ntMoksha').checked = Notify.prefs.moksha;
   $('#profileNote').textContent = Net.live ? 'Name change rejoins the live server (page reloads).' : '';
@@ -930,8 +967,9 @@ function openProfile() {
 $('#profileSave').onclick = () => {
   const name = ($('#profileNameIn').value.trim() || 'Aditya').slice(0, 24);
   const dept = $('#profileDeptIn').value.trim().slice(0, 16) || "CSE '27";
+  const bio = $('#profileBioIn').value.trim().slice(0, 80);
   const changed = name !== S.profile.name;
-  S.profile = { name, dept };
+  S.profile = { name, dept, bio };
   persist(); applyProfileToUI();
   $('#profileModal').hidden = true;
   if (changed && Net.live) {
