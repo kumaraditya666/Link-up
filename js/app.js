@@ -40,7 +40,14 @@ const S = {
   mokshaCardId: null,
   mokshaHomeOff: false,
   liveReq: null,
+  profile: store.get('profile', { name: 'Aditya', dept: "CSE '27" }),
 };
+const myName = () => (S.profile.name || 'Aditya').slice(0, 24);
+function applyProfileToUI() {
+  $('#profileName').textContent = `${myName()} · ${S.profile.dept || ''}`.trim();
+  $('#profileAvatar').textContent = myName().slice(0, 1).toUpperCase();
+  $('#profileBtn').textContent = myName().slice(0, 1).toUpperCase();
+}
 /* ---------- live helpers (Phase 3: server roster merges with mock friends) ---------- */
 function getPerson(id) { return FRIENDS.find((x) => x.id === id) || Net.person(id) || null; }
 function livePeople() { return Net.live ? Net.people() : []; }
@@ -58,6 +65,7 @@ function persist() {
   store.set('outgoing', S.outgoing); store.set('incoming', S.incoming);
   store.set('inbox', S.inbox); store.set('unread', S.unread);
   store.set('rsvp', S.rsvp); store.set('visited', S.visited);
+  store.set('profile', S.profile);
 }
 
 /* ---------- toasts ---------- */
@@ -411,6 +419,7 @@ function openLinkUp(fid) {
   if (!f.online) { toast(`${f.name.split(' ')[0]} is offline right now.`); return; }
   S.pendingLinkUp = f.id;
   $('#linkupWho').textContent = `Link up with ${f.name.split(' ')[0]}? · ${f.spot}`;
+  $('#linkupHint').textContent = `They'll get “${myName()} wants to link up.” · expires in 2 min`;
   $('#spotPick').innerHTML = SPOTS.map((s, i) => `<button data-s="${s}" class="${i === 0 ? 'active' : ''}">${s}</button>`).join('');
   S.spotPick = SPOTS[0];
   $$('#spotPick button').forEach((b) => (b.onclick = () => {
@@ -440,7 +449,7 @@ $('#sendLinkUp').onclick = async () => {
   }
   S.outgoing = { toId: f.id, expires: Date.now() + 2 * 60 * 1000 };
   persist(); renderFriends();
-  toast(`⚡ Link Up sent — “Aditya wants to link up.”`);
+  toast(`⚡ Link Up sent — “${myName()} wants to link up.”`);
   setTimeout(() => {
     if (S.outgoing?.toId !== f.id || S.session) return;
     S.outgoing = null;
@@ -873,8 +882,25 @@ function openProfile() {
   $('#statFriends').textContent = FRIENDS.length;
   $('#statPlaces').textContent = S.visited.length;
   $('#statEvents').textContent = S.rsvp.length;
+  $('#profileNameIn').value = myName();
+  $('#profileDeptIn').value = S.profile.dept || '';
+  $('#profileNote').textContent = Net.live ? 'Name change rejoins the live server (page reloads).' : '';
+  applyProfileToUI();
   $('#profileModal').hidden = false;
 }
+$('#profileSave').onclick = () => {
+  const name = ($('#profileNameIn').value.trim() || 'Aditya').slice(0, 24);
+  const dept = $('#profileDeptIn').value.trim().slice(0, 16) || "CSE '27";
+  const changed = name !== S.profile.name;
+  S.profile = { name, dept };
+  persist(); applyProfileToUI();
+  $('#profileModal').hidden = true;
+  if (changed && Net.live) {
+    try { localStorage.removeItem('linkup.live.cred'); } catch {}
+    toast('Profile saved — rejoining live server…');
+    setTimeout(() => location.reload(), 800);
+  } else toast('Profile saved ✅');
+};
 $('#profileBtn').onclick = openProfile;
 $('#profileLinkUp').onclick = () => { $('#profileModal').hidden = true; go('friends'); };
 
@@ -912,14 +938,15 @@ function boot() {
   Net.on('linkup_expired', () => { S.outgoing = null; persist(); renderFriends(); toast('Live request expired ⏳'); });
   Net.on('session_end', (m) => endSession(m.expired ? 'Live Link Up ended ⏳' : 'They ended the hangout.', true));
   Net.on('chat', (m) => pushMsg(m.from, 'them', m.text));
-  Net.init({ name: ME.name, dept: ME.dept }).then((live) => {
+  Net.init({ name: myName(), dept: S.profile.dept }).then((live) => {
     if (live) { toast('⚡ Connected to live server — real people, real requests.'); refreshLivePins(); }
   });
   $('#netPill').onclick = () => {
     updateNetPill();
-    if (!Net.live) { toast('Looking for live server…'); Net.init({ name: ME.name, dept: ME.dept }); }
+    if (!Net.live) { toast('Looking for live server…'); Net.init({ name: myName(), dept: S.profile.dept }); }
     else toast(`Live via ${Net.base} · ${Net.roster.length} on campus`);
   };
+  applyProfileToUI();
   setGhost(S.ghost);
   $('#statEvents').textContent = S.rsvp.length;
   const start = (location.hash || '#/map').replace('#/', '');

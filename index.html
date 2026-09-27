@@ -251,7 +251,7 @@
         <button data-d="30" class="active">30 min</button><button data-d="60">1 hour</button><button data-d="120">2 hours</button><button data-d="0">Until ended</button>
       </div></div>
       <button class="btn-primary big" id="sendLinkUp">Send Link Up ⚡</button>
-      <small class="muted">They'll get “Aditya wants to link up.” · expires in 2 min</small>
+      <small class="muted" id="linkupHint">They'll get a Link Up request · expires in 2 min</small>
     </div>
   </div>
 
@@ -360,8 +360,14 @@
   <!-- ===== Profile ===== -->
   <div id="profileModal" class="modal" hidden role="dialog" aria-modal="true" aria-label="Profile">
     <div class="modal-card"><button class="x" data-close="profileModal">✕</button>
-      <span class="avatar lg me">A</span>
-      <h2>Aditya · CSE '27</h2><p class="muted">NSUT Dwarka · linkup.nsu · “Your campus. Your people. Your map.”</p>
+      <span class="avatar lg me" id="profileAvatar">A</span>
+      <h2 id="profileName">Aditya · CSE '27</h2><p class="muted">NSUT Dwarka · linkup.nsu · “Your campus. Your people. Your map.”</p>
+      <div class="admin-grid" style="margin-bottom:10px">
+        <input id="profileNameIn" placeholder="Display name" maxlength="24" autocomplete="off" />
+        <input id="profileDeptIn" placeholder="Dept e.g. CSE '27" maxlength="16" autocomplete="off" />
+        <button class="mini-btn big-btn" id="profileSave">Save profile</button>
+      </div>
+      <small class="muted" id="profileNote"></small>
       <label class="switch row">👻 Ghost Mode <input type="checkbox" id="ghostToggle2" /><span></span></label>
       <div class="stat-row"><div><strong id="statFriends">8</strong><small>friends</small></div><div><strong id="statPlaces">3</strong><small>places</small></div><div><strong id="statEvents">2</strong><small>going</small></div></div>
       <button class="btn-primary big" id="profileLinkUp">Link Up with someone ⚡</button>
