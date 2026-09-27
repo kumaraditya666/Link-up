@@ -453,6 +453,12 @@ export function createMap(canvas, opts = {}) {
   const mokGroup = new THREE.Group(); scene.add(mokGroup);
   let mokMarker = null, mokPulse = null, venueRing = null, routeMesh = null, routeDots = [];
   let beams = [];
+  const crowdDot = new THREE.Mesh(
+    new THREE.SphereGeometry(4.5, 14, 10),
+    new THREE.MeshBasicMaterial({ color: 0xa3e635 }),
+  );
+  crowdDot.visible = false;
+  mokGroup.add(crowdDot);
   {
     mokPulse = new THREE.Mesh(new THREE.RingGeometry(46, 50, 64), new THREE.MeshBasicMaterial({ color: 0xfbbf24, transparent: true, opacity: 0.6, side: THREE.DoubleSide, depthWrite: false }));
     mokPulse.rotation.x = -Math.PI / 2; mokGroup.add(mokPulse);
@@ -509,6 +515,14 @@ export function createMap(canvas, opts = {}) {
       mokGroup.add(mokMarker); pickTargets.push(mokMarker);
     }
     mokMarker.position.set(GX(main.campus_x), 52, GZ(main.campus_y));
+    // reliable crowd data only — never fabricated (hidden otherwise)
+    if (['low', 'moderate', 'high'].includes(main.crowd)) {
+      crowdDot.visible = true;
+      crowdDot.position.set(GX(main.campus_x) + 26, 8, GZ(main.campus_y) - 14);
+      crowdDot.material.color.set(main.crowd === 'low' ? 0x34d399 : main.crowd === 'moderate' ? 0xfbbf24 : 0xef4444);
+      const cs = 1 + 0.18 * Math.sin(state.t * 3);
+      crowdDot.scale.set(cs, cs, cs);
+    } else crowdDot.visible = false;
     if (state.mokshaEventId) {
       const ev = EventStore.get(state.mokshaEventId);
       if (ev && ev.campus_x != null) {

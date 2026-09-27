@@ -438,6 +438,14 @@ function renderFriends() {
   }).join('');
   $$('[data-dec]', $('#incomingList')).forEach((b) => (b.onclick = () => declineIncoming(b.dataset.dec)));
   $$('[data-acc]', $('#incomingList')).forEach((b) => (b.onclick = () => acceptIncoming(b.dataset.acc)));
+  const hist = Social.history();
+  if (hist.length) {
+    const st = Social.recapStats(hist);
+    const when = (t) => { const d = Math.floor((Date.now() - t) / 864e5); return d < 1 ? 'today' : d === 1 ? 'yesterday' : d + 'd ago'; };
+    grid.innerHTML += `<h2 style="grid-column:1/-1;margin:10px 2px 0">Recent hangouts <span class="muted">· ${st.total} total${st.favSpot ? ` · fav: ${st.favSpot}` : ''}</span></h2>` + hist.slice(0, 4).map((h) => `
+      <div class="card"><div class="row"><span style="font-size:24px">🤝</span>
+      <div style="flex:1"><h3>${h.with}</h3><small>${h.spot} · ${h.mins} min · ${when(h.at)}</small></div></div></div>`).join('');
+  }
 }
 $$('.seg [data-f]').forEach((b) => (b.onclick = () => {
   $$('.seg [data-f]').forEach((x) => x.classList.remove('active'));
@@ -586,6 +594,7 @@ function endSession(msg, remote = false) {
     pushMsg(S.session.withId, 'me', 'Ending our link up — that was fun! 🤙');
     if (wasLive && Net.live) Net.endLink();
   }
+  Social.recordHangout(S.session.withName, S.session.spot, S.session.startedAt);
   S.session = null;
   if (S.sessionRoute) { S.sessionRoute = false; map.setRoute(null); }
   persist(); updateBanner(); renderFriends(); renderSheet();

@@ -61,6 +61,20 @@ export const Social = {
   },
   recordLinkup() { store.set('linkups', (store.get('linkups', 0) + 1)); },
   linkupCount() { return store.get('linkups', 0); },
+  history() { return store.get('history', []); },
+  recordHangout(withName, spot, startedAt) {
+    const h = this.history();
+    const start = startedAt || Date.now();
+    h.unshift({ with: withName, spot, at: start, mins: Math.max(1, Math.round((Date.now() - start) / 60000)) });
+    store.set('history', h.slice(0, 20));
+  },
+  recapStats(history) {
+    const week = history.filter((h) => Date.now() - h.at < 7 * 864e5);
+    const spots = {};
+    for (const h of history) spots[h.spot] = (spots[h.spot] || 0) + 1;
+    const fav = Object.entries(spots).sort((a, b) => b[1] - a[1])[0];
+    return { total: history.length, week: week.length, favSpot: fav ? fav[0] : null, favCount: fav ? fav[1] : 0 };
+  },
   trailProgress(trail, visited) {
     const stops = trail.stops || [];
     const done = stops.filter((s) => visited.includes(s));
