@@ -1,4 +1,4 @@
-/* Link Up — NSUT, but connected. App controller (map + social + Moksha live layer) */
+/* Link Up — NSUT, but connected. App controller (map + social + Moksha live layer) build 6 */
 import { ME, SPOTS, FRIENDS, PLACES, EVENTS, TRAILS, THREADS, QUICK, BUILDINGS } from './data.js';
 import { createMap } from './map.js';
 import { Net } from './net.js';
