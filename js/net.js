@@ -142,6 +142,8 @@ export const Net = {
       try {
         const m = JSON.parse(e.data);
         if (m.type === 'roster' && m.roster) { this.roster = m.roster.filter((u) => u.id !== this.me.id); this.emit('roster', this.roster); }
+        else if (m.type === 'hello' && m.attendance) { this.attendance = m.attendance; this.emit('hello', m); }
+        else if (m.type === 'attendance' && m.counts) { this.attendance = m.counts; this.emit('attendance', m.counts); }
         else this.emit(m.type, m);
       } catch {}
     };
@@ -174,6 +176,14 @@ export const Net = {
   respondLinkup(from, accept, durMin) { return this.api('POST', '/api/linkup/respond', { from, accept, durMin }); },
   endLink() { return this.api('POST', '/api/linkup/end', {}); },
   sendChat(to, text) { return this.api('POST', '/api/chat', { to, text }); },
+  attend(eventId) { return this.api('POST', '/api/attend', { eventId }); },
+  attendance: {},
+  async fetchAttendance() {
+    try {
+      const r = await this.api('GET', '/api/attendance');
+      if (r.data && typeof r.data === 'object') { this.attendance = r.data; this.emit('attendance', r.data); }
+    } catch {}
+  },
   blockUser(id, block = true) { return this.api('POST', '/api/block', { user: id, block }); },
   async blockedList() {
     const r = await this.api('GET', '/api/blocks');

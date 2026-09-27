@@ -48,7 +48,13 @@ const groups = new Map();     // id -> {id,spot,spotX,spotY,endsAt,host,members[
 const blocks = new Map();     // userId -> Set<blockedIds>
 const reports = [];           // [{id,from,about,reason,at}]
 const announcements = [];     // [{id,text,at,by}]
+const attendance = new Map(); // eventId -> Set<userId> (opt-in check-ins, real data)
 let adminTokens = new Set();
+function attendanceCounts() {
+  const o = {};
+  for (const [eid, set] of attendance) if (set.size) o[eid] = set.size;
+  return o;
+}
 function isBlocked(a, b) {
   return blocks.get(a)?.has(b) || blocks.get(b)?.has(a);
 }
@@ -131,7 +137,12 @@ setInterval(() => {
     if (g.endsAt && g.endsAt < now()) { groups.delete(id); groupCast(g, { type: 'group_end', groupId: id, expired: true }); }
   }
   for (const [id, u] of users) {
-    if (!u.bot && now() - u.seenAt > STALE_MS) { users.delete(id); broadcastRoster(); }
+    if (!u.bot && now() - u.seenAt > STALE_MS) {
+      users.delete(id);
+      for (const set of attendance.values()) set.delete(id);
+      broadcastRoster();
+      broadcast({ type: 'attendance', counts: attendanceCounts() });
+    }
   }
 }, 5000);
 
@@ -213,7 +224,7 @@ const server = http.createServer(async (req, res) => {
     }
     /* authed routes */
     const me = auth(req, url);
-    const needAuth = ['/api/pos', '/api/linkup', '/api/linkup/respond', '/api/linkup/end', '/api/session', '/api/chat', '/api/push/subscribe', '/api/push/unsubscribe', '/api/block', '/api/blocks', '/api/report', '/api/announce'].some((p) => url.pathname === p || url.pathname.startsWith('/api/chat')) || url.pathname.startsWith('/api/group') || url.pathname === '/api/groups/mine';
+    const needAuth = ['/api/pos', '/api/linkup', '/api/linkup/respond', '/api/linkup/end', '/api/session', '/api/chat', '/api/push/subscribe', '/api/push/unsubscribe', '/api/block', '/api/blocks', '/api/report', '/api/announce', '/api/attend', '/api/attendance'].some((p) => url.pathname === p || url.pathname.startsWith('/api/chat')) || url.pathname.startsWith('/api/group') || url.pathname === '/api/groups/mine';
     if (needAuth && !me) return send(res, 401, { error: 'unauthorized' });
 
     if (req.method === 'POST' && url.pathname === '/api/pos') {
@@ -226,7 +237,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && url.pathname === '/api/live') {
       if (!me) return send(res, 401, { error: 'unauthorized' });
       res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive', 'Access-Control-Allow-Origin': '*' });
-      res.write(`data: ${JSON.stringify({ type: 'hello', you: me.id, roster: rosterFor(me.id) })}\n\n`);
+      res.write(`data: ${JSON.stringify({ type: 'hello', you: me.id, roster: rosterFor(me.id), attendance: attendanceCounts() })}\n\n`);
       res.on('error', () => {}); // dead sockets must never take the server down
       if (!streams.has(me.id)) streams.set(me.id, new Set());
       streams.get(me.id).add(res);
@@ -428,6 +439,17 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, { ok: true, announce: a });
     }
     if (req.method === 'GET' && url.pathname === '/api/announce') return send(res, 200, announcements);
+    if (req.method === 'POST' && url.pathname === '/api/attend') {
+      const { eventId } = await body(req);
+      if (!eventId) return send(res, 400, { error: 'event required' });
+      if (!attendance.has(eventId)) attendance.set(eventId, new Set());
+      const set = attendance.get(eventId);
+      if (set.has(me.id)) set.delete(me.id);
+      else set.add(me.id);
+      broadcast({ type: 'attendance', counts: attendanceCounts() });
+      return send(res, 200, { ok: true, here: set.has(me.id), count: set.size });
+    }
+    if (req.method === 'GET' && url.pathname === '/api/attendance') return send(res, 200, attendanceCounts());
     if (req.method === 'POST' && url.pathname === '/api/admin/events') {
       const ev = await body(req);
       if (!ev.name || !ev.start_time || !ev.end_time) return send(res, 400, { error: 'name/dates required' });

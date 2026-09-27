@@ -86,7 +86,32 @@ function persist() {
   store.set('outgoing', S.outgoing); store.set('incoming', S.incoming);
   store.set('inbox', S.inbox); store.set('unread', S.unread);
   store.set('rsvp', S.rsvp); store.set('visited', S.visited);
-  store.set('profile', S.profile);
+  store.set('profile', S.profile); store.set('attendMine', S.attendMine);
+}
+function attendLabel(ev) {
+  const mine = S.attendMine.includes(ev.id);
+  if (Net.live) {
+    const n = Net.attendance[ev.id] || 0;
+    return mine ? `🙋 ${n} here · you’re in ✓` : `🙋 ${n} here · I’m here`;
+  }
+  return mine ? '🙋 You’re in! ✓' : '🙋 I’m here';
+}
+async function toggleAttend(ev) {
+  if (Net.live) {
+    const r = await Net.attend(ev.id);
+    if (r.data.ok) {
+      if (r.data.here && !S.attendMine.includes(ev.id)) S.attendMine.push(ev.id);
+      if (!r.data.here) S.attendMine = S.attendMine.filter((x) => x !== ev.id);
+      persist();
+      toast(r.data.here ? `Checked in at ${ev.name} 🙋` : 'Checked out.');
+    }
+    return;
+  }
+  if (S.attendMine.includes(ev.id)) S.attendMine = S.attendMine.filter((x) => x !== ev.id);
+  else { S.attendMine.push(ev.id); toast(`Marked yourself at ${ev.name} 🙋 (offline)`); }
+  persist();
+  if (!$('#mokshaHub').hidden) renderMokshaHub();
+  if (!$('#mokshaCard').hidden) fillMokshaCard(ev);
 }
 
 /* ---------- toasts ---------- */
@@ -251,6 +276,7 @@ function fillMokshaCard(ev) {
   } else cr.hidden = true;
   const mine = getInterested().has(ev.id);
   $('#mokshaInterest').textContent = mine ? '★ Interested ✓' : "☆ I'm Interested";
+  $('#mokshaAttend').textContent = attendLabel(ev);
   $('#mokshaCount').textContent = `👥 ${interestCount(ev)} interested · ${catEmoji(ev.category)} ${ev.category}`;
   const mappable = ev.verified && ev.campus_x != null;
   $('#mokshaDir').disabled = !mappable;
@@ -273,6 +299,12 @@ $('#mokshaInterest').onclick = () => {
   toast(on ? 'Nice — you’re on the interested list 🎭' : 'Removed from interested.');
   if (S.view === 'events') renderEvents();
 };
+$('#mokshaAttend').onclick = async () => {
+  const ev = EventStore.get(S.mokshaCardId);
+  if (!ev) return;
+  await toggleAttend(ev);
+  fillMokshaCard(ev);
+};
 
 /* ----- hub ----- */
 function openMokshaHub() {
@@ -294,6 +326,7 @@ function renderMokshaHub() {
       <span>📅 ${fmtDate(ev.start_time)} · ${fmtTime(ev.start_time)}</span></div>
       <p>${ev.description || ''}</p>
       <div class="row"><span class="muted">👥 ${interestCount(ev)} interested</span><span style="flex:1"></span>
+      <button class="mini-btn" data-att="${ev.id}">${attendLabel(ev)}</button>
       ${mappable ? `<button class="mini-btn" data-locate="${ev.id}">📍 Map</button><button class="mini-btn go" data-dir="${ev.id}">Route</button>` : `<button class="mini-btn" disabled title="No verified venue yet">Venue TBA</button>`}
       </div></div>`;
   }).join('') : `<div class="mk-ev">No verified events in this category yet.</div>`;
@@ -308,6 +341,11 @@ function renderMokshaHub() {
     const ev = EventStore.get(b.dataset.dir);
     $('#mokshaHub').hidden = true; go('map');
     showDirections(ev);
+  }));
+  $$('#mokshaList [data-att]').forEach((b) => (b.onclick = async () => {
+    const ev = EventStore.get(b.dataset.att);
+    await toggleAttend(ev);
+    if (!$('#mokshaHub').hidden) renderMokshaHub();
   }));
 }
 
@@ -1261,6 +1299,10 @@ function boot() {
   });
   Net.on('group_end', (m) => { if (S.group && S.group.id === m.groupId) clearGroup(m.expired ? 'Group link up ended ⏳' : 'Host ended the group.'); });
   Net.on('group_chat', (m) => pushMsg('group:' + m.groupId, 'them', m.text));
+  Net.on('attendance', () => {
+    if (!$('#mokshaHub').hidden) renderMokshaHub();
+    if (!$('#mokshaCard').hidden && S.mokshaCardId) fillMokshaCard(EventStore.get(S.mokshaCardId));
+  });
   Net.on('announce', (m) => {
     if (m.announce) pushAnn(m.announce);
     toast('📢 Organizers: ' + (m.announce?.text || 'new announcement').slice(0, 90));
