@@ -43,7 +43,7 @@ const MODES = {
 const SUNPOS = { day: [600, 950, 350], evening: [-850, 260, 250], night: [450, 750, -350] };
 
 const PLAZAS = [
-  { x: 345, y: 392, w: 130, d: 40 },  // admin apron
+  { x: 345, y: 428, w: 110, d: 32 },  // admin forecourt (south of the vertical block)
   { x: 460, y: 202, w: 110, d: 30 },  // canteen apron
   { x: 550, y: 422, w: 120, d: 30 },  // sac apron
 ];
@@ -74,14 +74,14 @@ const PLACEMENTS = [
   { m: 'guest', id: 'guest', x: 400, y: 490 },
   { m: 'design', id: 'design', x: 130, y: 100 },
   { m: 'smart', id: 'smart', x: 550, y: 238 },
-  { m: 'flag', id: 'flag', x: 270, y: 365 },
+  { m: 'flag', id: 'flag', x: 300, y: 358 },
 ];
 /* tree-avoid rects [cx, cy, hw, hd] */
 const FOOT = [
-  [345, 355, 70, 40], [550, 395, 70, 40], [425, 225, 70, 45], [460, 180, 65, 32],
+  [345, 355, 36, 62], [550, 395, 70, 40], [425, 225, 70, 45], [460, 180, 65, 32],
   [200, 160, 60, 40], [300, 190, 60, 40], [470, 540, 60, 40], [130, 100, 55, 35],
   [430, 400, 55, 45], [490, 340, 55, 45],
-  [630, 357, 50, 35], [400, 490, 40, 30], [550, 238, 40, 30], [270, 365, 25, 25],
+  [630, 357, 50, 35], [400, 490, 40, 30], [550, 238, 40, 30], [300, 358, 22, 22],
   [380, 205, 16, 14], [510, 215, 16, 14],
 ];
 const HEIGHTS = {
@@ -411,7 +411,7 @@ export function createMap(canvas, opts = {}) {
 
   /* ---------- people + vehicles ---------- */
   {
-    const spots = [[460, 200], [475, 330], [550, 415], [230, 260], [780, 500], [270, 385], [345, 375]];
+    const spots = [[460, 200], [475, 330], [550, 415], [230, 260], [780, 500], [300, 382], [360, 395]];
     const rng = mulberry(77);
     const geo = new THREE.CapsuleGeometry(1.1, 2.4, 3, 8);
     const mat = new THREE.MeshStandardMaterial({ roughness: 0.9 });
@@ -515,7 +515,7 @@ export function createMap(canvas, opts = {}) {
   }
   window.addEventListener('linkup-events-changed', () => { evCache.at = 0; refreshMoksha(); });
   const RING_SIZE = {
-    admin: 2.4, 'sac-lib': 2.4, 'moksha-ground': 3.6, 'amul-ground': 2.6, sports: 3.2,
+    admin: 3.2, 'sac-lib': 2.4, 'moksha-ground': 3.6, 'amul-ground': 2.6, sports: 3.2,
     canteen: 2.2, apj: 2.2, gym: 1.8, flag: 1.4, nescii1: 2.2, nescii2: 2.2,
     'academic-a': 1.9, 'academic-b': 1.9,
   };

@@ -163,6 +163,14 @@ function composeBuilding(spec, detail, seed) {
   if (detail && spec.entrance === 'W') entrance(ctx, 'W', spec.blocks[0].ox - spec.blocks[0].w / 2, spec.blocks[0].oz, wall, trim);
   if (detail && spec.entrance === 'N') entrance(ctx, 'N', spec.blocks[0].oz - spec.blocks[0].d / 2, spec.blocks[0].ox, wall, trim);
   if (detail && spec.flag) { prism(opaque, spec.blocks[0].ox + 20, 8 + spec.blocks[0].h, spec.blocks[0].oz - spec.blocks[0].d / 2 - 6, 0.35, 16, 6, C.dark); box(opaque, spec.blocks[0].ox + 22.4, 13 + spec.blocks[0].h, spec.blocks[0].oz - spec.blocks[0].d / 2 - 6, 4.6, 2.8, 0.4, trim); }
+  if (detail && spec.mural) {
+    // grand mural plate + green bands on the west facade (Admin Block photos)
+    const mb = spec.blocks[0], mx = mb.ox - mb.w / 2;
+    box(opaque, mx - 0.3, mb.h * 0.52, mb.oz, 0.9, mb.h * 0.55, 30, hex('#d8cfc0'));
+    box(opaque, mx - 0.45, mb.h * 0.3, mb.oz, 1.0, 1.4, 38, hex('#2e6b34'));
+    box(opaque, mx - 0.45, mb.h * 0.76, mb.oz, 1.0, 1.4, 38, hex('#2e6b34'));
+    for (const pz of [-14, -5, 5, 14]) prism(opaque, mx - 7, 3.4, mb.oz + pz, 0.9, 6.8, 8, hex('#d8c9a8')); // portico columns
+  }
   if (detail && (spec.umbrellas || 0)) for (let i = 0; i < spec.umbrellas; i++) umbrella(ctx, spec.blocks[0].ox - 30 + i * 20, spec.blocks[0].oz + spec.blocks[0].d / 2 + 16);
   if (detail && spec.stepsWide) {
     for (let i = 0; i < 3; i++) box(opaque, spec.blocks[0].ox, 0.4 + i * 0.55, spec.blocks[0].oz + spec.blocks[0].d / 2 + 4 + i * 1.6, spec.stepsWide - i * 4, 1.1, 2.2, C.concrete);
@@ -172,7 +180,7 @@ function composeBuilding(spec, detail, seed) {
 
 /* ---------- landmark specs (local coords, y-up; match campus grid) ---------- */
 const SPECS = {
-  admin: { wall: '#b9a98c', roof: '#7d7466', trim: '#31437c', entrance: 'S', floors: 3, flag: true, blocks: [{ ox: 0, oz: 0, w: 120, d: 46, h: 15 }, { ox: -62, oz: 6, w: 30, d: 40, h: 11 }, { ox: 62, oz: 6, w: 30, d: 40, h: 11 }] },
+  admin: { wall: '#9c4a34', roof: '#6e3a2a', trim: '#d8c9a8', entrance: 'W', floors: 3, mural: true, blocks: [{ ox: 0, oz: 0, w: 54, d: 112, h: 15 }, { ox: 30, oz: -30, w: 26, d: 36, h: 11 }, { ox: 30, oz: 30, w: 26, d: 36, h: 11 }] },
   library: { wall: '#c8bfae', roof: '#6f7d8c', trim: '#0e7490', entrance: 'S', floors: 3, stepsWide: 34, blocks: [{ ox: 0, oz: 0, w: 112, d: 50, h: 13, glass: 'S' }, { ox: -70, oz: -4, w: 40, d: 36, h: 9 }] },
   apj: { wall: '#b7bdc9', roof: '#5d6673', trim: '#8a93a3', entrance: 'W', floors: 3, blocks: [{ ox: -10, oz: 0, w: 120, d: 42, h: 14 }, { ox: 55, oz: 34, w: 34, d: 62, h: 14 }] },
   academic: { wall: '#b7bdc9', roof: '#5d6673', trim: '#31437c', entrance: 'S', floors: 3, blocks: [{ ox: 0, oz: -4, w: 64, d: 40, h: 13 }, { ox: -40, oz: 12, w: 22, d: 44, h: 10 }, { ox: 40, oz: 12, w: 22, d: 44, h: 10 }] },
