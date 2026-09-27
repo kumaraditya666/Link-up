@@ -140,6 +140,11 @@
           <div><strong id="linkupBannerTitle">LINKED UP</strong><small id="linkupBannerSub">Near SAC · 42:10 left</small></div>
           <div class="lu-actions"><button id="linkupBannerChat">Chat</button><button id="linkupBannerEnd">End</button></div>
         </div>
+        <div id="groupBanner" hidden>
+          <div class="lu-pulse">👥</div>
+          <div><strong id="groupBannerTitle">GROUP LINK UP</strong><small id="groupBannerSub"></small></div>
+          <div class="lu-actions"><button id="groupBannerChat">Chat</button><button id="groupBannerLeave">Leave</button></div>
+        </div>
         <div id="mapSheet">
           <div class="sheet-grip"></div>
           <div class="sheet-head">
@@ -156,7 +161,8 @@
     <!-- FRIENDS -->
     <section id="view-friends" class="view" aria-label="Friends">
       <div class="page-head"><div><h1>Friends</h1><p>Your friend network at NSUT.</p></div>
-        <div class="seg"><button data-f="all" class="active">All</button><button data-f="online">Online</button><button data-f="linked">Linked</button></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><div class="seg"><button data-f="all" class="active">All</button><button data-f="online">Online</button><button data-f="linked">Linked</button></div>
+        <button class="mini-btn go" id="newGroupBtn">＋ Group ⚡</button></div>
       </div>
       <div id="incomingWrap" hidden>
         <h2>Requests <span id="incomingCount"></span></h2>
@@ -238,6 +244,24 @@
     <button id="moreProfile">◉ Profile & Ghost Mode</button>
     <button id="moreClose">Close</button>
   </div></div>
+
+  <!-- ===== Group Link Up modal ===== -->
+  <div id="groupModal" class="modal" hidden role="dialog" aria-modal="true" aria-label="New group">
+    <div class="modal-card">
+      <div class="modal-glow"></div>
+      <button class="x" data-close="groupModal">✕</button>
+      <div class="lu-mark">👥</div>
+      <h2>GROUP LINK UP</h2>
+      <p class="muted">Hangout with the whole crew at one spot.</p>
+      <div class="spot-row"><span>Meet spot</span><div class="seg wrap" id="gSpotPick"></div></div>
+      <div class="spot-row"><span>Keep it live for</span><div class="seg wrap" id="gDurPick">
+        <button data-d="30" class="active">30 min</button><button data-d="60">1 hour</button><button data-d="120">2 hours</button><button data-d="0">Until ended</button>
+      </div></div>
+      <div class="spot-row"><span>Invite (live people)</span><div id="gMembers" style="display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto"></div></div>
+      <button class="btn-primary big" id="createGroup">Create group ⚡</button>
+      <small class="muted">Groups need the live server · host can end for all</small>
+    </div>
+  </div>
 
   <!-- ===== Link Up modal (send) ===== -->
   <div id="linkupModal" class="modal" hidden role="dialog" aria-modal="true" aria-label="Link Up">

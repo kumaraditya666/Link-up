@@ -427,8 +427,12 @@ function renderFriends() {
   $$('[data-chat]', grid).forEach((b) => (b.onclick = () => { openChat(b.dataset.chat); go('messages'); }));
   $$('[data-end]', grid).forEach((b) => (b.onclick = () => endSession('You ended the hangout.')));
   const inc = [...S.incomingQueue.map((q) => ({ ...q, pending: true })), ...S.incoming];
-  $('#incomingWrap').hidden = !inc.length;
-  $('#incomingCount').textContent = inc.length ? `(${inc.length})` : '';
+  const ginv = S.groupInvites.map((g) => `<div class="incoming-card"><span class="avatar" style="background:linear-gradient(135deg,#7c3aed,#f59e0b)">👥</span>
+      <div class="grow"><strong>Group link up at ${g.spot}.</strong><small>${g.members.map((m) => m.name.split(' ')[0]).join(', ')}</small></div>
+      <button class="mini-btn" data-gdec="${g.id}">Decline</button>
+      <button class="mini-btn go" data-gjoin="${g.id}">Join</button></div>`).join('');
+  $('#incomingWrap').hidden = !inc.length && !S.groupInvites.length;
+  $('#incomingCount').textContent = (inc.length + S.groupInvites.length) ? `(${inc.length + S.groupInvites.length})` : '';
   $('#incomingList').innerHTML = inc.map((q) => {
     const f = FRIENDS.find((x) => x.id === q.id);
     return `<div class="incoming-card"><span class="avatar" style="background:${f.grad}">${f.short.slice(0, 1)}</span>
@@ -438,6 +442,16 @@ function renderFriends() {
   }).join('');
   $$('[data-dec]', $('#incomingList')).forEach((b) => (b.onclick = () => declineIncoming(b.dataset.dec)));
   $$('[data-acc]', $('#incomingList')).forEach((b) => (b.onclick = () => acceptIncoming(b.dataset.acc)));
+  $('#incomingList').insertAdjacentHTML('afterbegin', ginv);
+  $$('#incomingList [data-gdec]').forEach((b) => (b.onclick = () => { S.groupInvites = S.groupInvites.filter((g) => g.id !== b.dataset.gdec); renderFriends(); toast('Declined the group invite.'); }));
+  $$('#incomingList [data-gjoin]').forEach((b) => (b.onclick = async () => {
+    const r = await Net.groupJoin(b.dataset.gjoin);
+    if (r.data.ok) {
+      S.groupInvites = S.groupInvites.filter((g) => g.id !== b.dataset.gjoin);
+      setGroup(r.data.group);
+      toast('👥 Joined the group!');
+    } else toast(r.data.error === 'already linked' ? 'Finish your current hangout first 🤝' : 'That group expired ⏳');
+  }));
   const hist = Social.history();
   if (hist.length) {
     const st = Social.recapStats(hist);
@@ -455,6 +469,7 @@ $$('.seg [data-f]').forEach((b) => (b.onclick = () => {
 /* ---------- Link Up flow ---------- */
 function openLinkUp(fid) {
   const f = getPerson(fid) || FRIENDS[0];
+  if (S.group) { toast('Leave your group first to link up 1-on-1 👥'); return; }
   if (S.ghost) { toast('👻 Ghost Mode is on — go visible to link up.'); go('nearby'); return; }
   if (S.session) { toast(`Already linked up with ${S.session.withName} 🤝`); showLinked(); return; }
   if (!f.online) { toast(`${f.name.split(' ')[0]} is offline right now.`); return; }
@@ -642,6 +657,8 @@ function fmtLeft(ms) {
 setInterval(() => {
   if (S.session?.endsAt && S.session.endsAt - Date.now() <= 0) endSession('Link Up expired ⏳');
   if (S.session) updateBanner();
+  if (S.group?.endsAt && S.group.endsAt - Date.now() <= 0) clearGroup('Group link up ended ⏳');
+  if (S.group) updateGroupBanner();
   if (S.outgoing && S.outgoing.expires < Date.now()) { S.outgoing = null; persist(); renderFriends(); }
 }, 5000);
 setInterval(() => {
@@ -654,6 +671,83 @@ setInterval(() => {
 }, 30000);
 $('#linkupBannerEnd').onclick = () => endSession('You ended the hangout.');
 $('#linkupBannerChat').onclick = () => { openChat(S.session.withId); go('messages'); };
+
+/* ---------- Group Link Up ---------- */
+function groupThreadName(g) { return `👥 ${g.spot}`; }
+function openGroupModal() {
+  if (!Net.live) { toast('Groups need the live server 📡'); return; }
+  if (S.session) { toast('Finish your 1-on-1 hangout first 🤝'); return; }
+  if (S.group) { toast('Already in a group 👥'); return; }
+  const live = livePeople();
+  if (!live.length) { toast('Nobody live right now — wait for the crowd 👀'); return; }
+  $('#gSpotPick').innerHTML = SPOTS.map((s, i) => `<button data-s="${s}" class="${i === 0 ? 'active' : ''}">${s}</button>`).join('');
+  S.groupSpot = SPOTS[0];
+  $$('#gSpotPick button').forEach((b) => (b.onclick = () => {
+    $$('#gSpotPick button').forEach((x) => x.classList.remove('active'));
+    b.classList.add('active'); S.groupSpot = b.dataset.s;
+  }));
+  S.groupDur = 60;
+  $$('#gDurPick button').forEach((b) => b.classList.toggle('active', b.dataset.d === '60'));
+  $$('#gDurPick button').forEach((b) => (b.onclick = () => {
+    $$('#gDurPick button').forEach((x) => x.classList.remove('active'));
+    b.classList.add('active'); S.groupDur = +b.dataset.d;
+  }));
+  $('#gMembers').innerHTML = live.map((f) => `<label class="switch row" style="font-size:13px"><span style="flex:1">${f.name}${f.bot ? ' 🤖' : ''} <small class="muted">· ${f.spot}</small></span><input type="checkbox" data-gm="${f.id}" ${f.bot ? '' : 'checked'} /><span></span></label>`).join('');
+  $('#groupModal').hidden = false;
+}
+$('#newGroupBtn').onclick = openGroupModal;
+$('#createGroup').onclick = async () => {
+  const ids = $$('#gMembers [data-gm]:checked').map((c) => c.dataset.gm);
+  $('#groupModal').hidden = true;
+  const r = await Net.groupCreate(S.groupSpot, S.groupDur);
+  if (!r.data.ok) { toast(r.data.error === 'already linked' ? 'Finish your current hangout first 🤝' : 'Could not create group'); return; }
+  setGroup(r.data.group);
+  toast(`👥 Group created at ${S.group.spot}! Invites sent ⚡`);
+  for (const id of ids) Net.groupInvite(S.group.id, id);
+};
+function setGroup(g) {
+  S.group = g;
+  S.groupNames['group:' + g.id] = groupThreadName(g);
+  updateGroupBanner();
+  try {
+    const r = route([map.mePos.x, map.mePos.y], [g.spotX, g.spotY]);
+    if (r) { map.setRoute({ pts: r.pts, to: { x: g.spotX, y: g.spotY } }); S.groupRoute = true; }
+  } catch {}
+  if (S.view === 'friends') renderFriends();
+}
+function clearGroup(msg) {
+  S.group = null;
+  if (S.groupRoute) { S.groupRoute = false; map.setRoute(null); }
+  updateGroupBanner();
+  if (S.view === 'friends') renderFriends();
+  if (msg) toast(msg);
+}
+function updateGroupBanner() {
+  const b = $('#groupBanner');
+  if (!S.group) { b.hidden = true; return; }
+  b.hidden = false;
+  const names = S.group.members.map((m) => m.name.split(' ')[0]).join(', ');
+  const left = S.group.endsAt ? fmtLeft(S.group.endsAt - Date.now()) + ' left' : 'live until ended';
+  $('#groupBannerTitle').textContent = `👥 GROUP · ${S.group.members.length}`;
+  $('#groupBannerSub').textContent = `${S.group.spot} · ${names} · ${left}`;
+}
+$('#groupBannerChat').onclick = () => { if (S.group) { openChat('group:' + S.group.id); go('messages'); } };
+$('#groupBannerLeave').onclick = async () => {
+  if (!S.group) return;
+  const g = S.group;
+  if (g.host === Net.me?.id) { await Net.groupEnd(g.id); }
+  else await Net.groupLeave(g.id);
+  clearGroup('Left the group.');
+};
+function groupPerson(fid) {
+  if (!fid.startsWith('group:')) return null;
+  const g = S.group && ('group:' + S.group.id) === fid ? S.group : null;
+  return {
+    id: fid, name: S.groupNames[fid] || (g ? groupThreadName(g) : 'Group hangout'),
+    short: '👥', grad: 'linear-gradient(135deg,#7c3aed,#f59e0b)', online: !!g,
+    spot: g ? g.spot : 'ended', live: true, group: true,
+  };
+}
 
 /* ---------- Nearby + Ghost ---------- */
 function renderNearby() {
@@ -937,7 +1031,7 @@ function renderThreads() {
     if (el) { el.hidden = !total; el.textContent = total; }
   }
   $('#threadList').innerHTML = ids.map((id) => {
-    const f = getPerson(id) || { name: id, grad: 'var(--grad)', short: '?' };
+    const f = getPerson(id) || groupPerson(id) || { name: id, grad: 'var(--grad)', short: '?' };
     const last = S.inbox[id].at(-1);
     return `<button class="thread ${S.activeChat === id ? 'active' : ''}" data-th="${id}">
       <span class="avatar" style="background:${f.grad}">${(f.short || '?').slice(0, 1)}</span>
@@ -946,7 +1040,7 @@ function renderThreads() {
   $$('#threadList [data-th]').forEach((b) => (b.onclick = () => openChat(b.dataset.th)));
 }
 function openChat(fid) {
-  const f = getPerson(fid);
+  const f = getPerson(fid) || groupPerson(fid);
   if (!f) return;
   S.activeChat = fid;
   S.unread[fid] = 0; persist();
@@ -971,6 +1065,12 @@ function renderChat() {
 function sendChat(text) {
   text = (text || '').trim(); if (!text || !S.activeChat) return;
   const fid = S.activeChat;
+  if (fid.startsWith('group:')) {
+    pushMsg(fid, 'me', text);
+    $('#chatInput').value = '';
+    if (Net.live) Net.groupChat(fid.slice(6), text);
+    return;
+  }
   pushMsg(fid, 'me', text);
   $('#chatInput').value = '';
   if (getPerson(fid)?.live && Net.live) { Net.sendChat(fid, text); return; } // server delivers
@@ -1071,6 +1171,25 @@ function boot() {
   Net.on('linkup_expired', () => { S.outgoing = null; persist(); renderFriends(); toast('Live request expired ⏳'); });
   Net.on('session_end', (m) => endSession(m.expired ? 'Live Link Up ended ⏳' : 'They ended the hangout.', true));
   Net.on('chat', (m) => pushMsg(m.from, 'them', m.text));
+  Net.on('group_invite', (m) => {
+    S.groupNames['group:' + m.group.id] = groupThreadName(m.group);
+    if (!S.groupInvites.find((g) => g.id === m.group.id)) S.groupInvites.push(m.group);
+    if (S.view === 'friends') renderFriends();
+    toast(`👥 ${m.fromName} invited you to link up at ${m.group.spot}`);
+    if (document.hidden) Notify.linkup(m.fromName + ' (group)');
+  });
+  Net.on('group_update', (m) => {
+    if (!S.group || S.group.id !== m.group.id) return;
+    const before = S.group.members.length;
+    S.group = m.group;
+    S.groupNames['group:' + m.group.id] = groupThreadName(m.group);
+    if (Net.me && !m.group.members.find((x) => x.id === Net.me.id)) { clearGroup(); return; }
+    updateGroupBanner();
+    if (m.group.members.length > before) toast('👥 Someone joined the group!');
+    if (S.view === 'friends') renderFriends();
+  });
+  Net.on('group_end', (m) => { if (S.group && S.group.id === m.groupId) clearGroup(m.expired ? 'Group link up ended ⏳' : 'Host ended the group.'); });
+  Net.on('group_chat', (m) => pushMsg('group:' + m.groupId, 'them', m.text));
   Net.on('outbox', () => { if (!$('#debugModal').hidden) renderDebug(); });
   window.addEventListener('online', () => { if (Net.live) Net.flush(); });
   Net.init({ name: myName(), dept: S.profile.dept }).then((live) => {

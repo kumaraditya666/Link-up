@@ -174,6 +174,13 @@ export const Net = {
   respondLinkup(from, accept, durMin) { return this.api('POST', '/api/linkup/respond', { from, accept, durMin }); },
   endLink() { return this.api('POST', '/api/linkup/end', {}); },
   sendChat(to, text) { return this.api('POST', '/api/chat', { to, text }); },
+  groupCreate(spot, durMin) { return this.api('POST', '/api/group/create', { spot, durMin }); },
+  groupInvite(groupId, to) { return this.api('POST', '/api/group/invite', { groupId, to }); },
+  groupJoin(groupId) { return this.api('POST', '/api/group/join', { groupId }); },
+  groupLeave(groupId) { return this.api('POST', '/api/group/leave', { groupId }); },
+  groupEnd(groupId) { return this.api('POST', '/api/group/end', { groupId }); },
+  groupChat(groupId, text) { return this.api('POST', '/api/group/chat', { groupId, text }); },
+  myGroups() { return this.api('GET', '/api/groups/mine'); },
   async subscribePush() {
     if (!this.live) return false;
     try {

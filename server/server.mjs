@@ -44,7 +44,22 @@ const requests = new Map();   // id -> {id,from,to,spot,durMin,expires}
 const sessions = new Map();   // userId -> {id,with,spot,endsAt}
 const chats = new Map();      // pairKey -> [{from,text,t}]
 const pushSubs = new Map();   // userId -> push subscription
+const groups = new Map();     // id -> {id,spot,spotX,spotY,endsAt,host,members[],invites[]}
 let adminTokens = new Set();
+function memberGroups(uid) {
+  const out = [];
+  for (const g of groups.values()) if (g.members.includes(uid)) out.push(g);
+  return out;
+}
+function groupPublic(g) {
+  return {
+    id: g.id, spot: g.spot, spotX: g.spotX, spotY: g.spotY, endsAt: g.endsAt, host: g.host,
+    members: g.members.map((id) => { const u = users.get(id); return u ? { id: u.id, name: u.name, x: Math.round(u.x), y: Math.round(u.y) } : null; }).filter(Boolean),
+  };
+}
+function groupCast(g, msg, skip) {
+  for (const id of g.members) if (id !== skip) sendTo(id, msg);
+}
 
 /* ---------- campus flavor ---------- */
 const POIS = [['Moksha Ground', 475, 300], ['SAC & Library', 550, 400], ['Student Canteen', 460, 185], ['Amul Ground', 230, 240], ['Admin Block', 345, 360], ['Flag Circle', 270, 368], ['Sports Complex', 780, 470], ['APJ Complex', 425, 230], ['Boys Hostel', 250, 175], ['Main Gate', 60, 450]];
@@ -105,6 +120,9 @@ setInterval(() => {
   }
   for (const [uid, s] of sessions) {
     if (s.endsAt && s.endsAt < now()) { endSession(uid, true); }
+  }
+  for (const [id, g] of groups) {
+    if (g.endsAt && g.endsAt < now()) { groups.delete(id); groupCast(g, { type: 'group_end', groupId: id, expired: true }); }
   }
   for (const [id, u] of users) {
     if (!u.bot && now() - u.seenAt > STALE_MS) { users.delete(id); broadcast({ type: 'roster', roster: roster() }); }
@@ -179,7 +197,7 @@ const server = http.createServer(async (req, res) => {
     }
     /* authed routes */
     const me = auth(req, url);
-    const needAuth = ['/api/pos', '/api/linkup', '/api/linkup/respond', '/api/linkup/end', '/api/session', '/api/chat', '/api/push/subscribe', '/api/push/unsubscribe'].some((p) => url.pathname === p || url.pathname.startsWith('/api/chat'));
+    const needAuth = ['/api/pos', '/api/linkup', '/api/linkup/respond', '/api/linkup/end', '/api/session', '/api/chat', '/api/push/subscribe', '/api/push/unsubscribe'].some((p) => url.pathname === p || url.pathname.startsWith('/api/chat')) || url.pathname.startsWith('/api/group') || url.pathname === '/api/groups/mine';
     if (needAuth && !me) return send(res, 401, { error: 'unauthorized' });
 
     if (req.method === 'POST' && url.pathname === '/api/pos') {
@@ -212,8 +230,8 @@ const server = http.createServer(async (req, res) => {
       const { to, spot, durMin } = await body(req);
       const peer = users.get(to);
       if (!peer) return send(res, 404, { error: 'user offline' });
-      if (sessions.get(me.id)) return send(res, 409, { error: 'already linked' });
-      if (sessions.get(to)) return send(res, 409, { error: 'busy' });
+      if (sessions.get(me.id) || memberGroups(me.id).length) return send(res, 409, { error: 'already linked' });
+      if (sessions.get(to) || memberGroups(to).length) return send(res, 409, { error: 'busy' });
       const r = { id: rid('req-'), from: me.id, to, spot: String(spot || 'Near SAC').slice(0, 60), durMin: [30, 60, 120, 0].includes(+durMin) ? +durMin : 30, expires: now() + 120e3 };
       requests.set(r.id, r);
       if (peer.bot) {
@@ -264,7 +282,8 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'GET' && url.pathname === '/api/chat') {
       const withId = url.searchParams.get('with');
-      return send(res, 200, { messages: chats.get(pairKey(me.id, withId)) || [] });
+      const k = withId.startsWith('group:') ? withId : pairKey(me.id, withId);
+      return send(res, 200, { messages: chats.get(k) || [] });
     }
     if (req.method === 'GET' && url.pathname === '/api/push/key') return send(res, 200, { publicKey: appPublicKey() });
     if (req.method === 'POST' && url.pathname === '/api/push/subscribe') {
@@ -274,6 +293,82 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, { ok: true });
     }
     if (req.method === 'POST' && url.pathname === '/api/push/unsubscribe') { pushSubs.delete(me.id); return send(res, 200, { ok: true }); }
+    /* ---- group hangouts ---- */
+    if (req.method === 'POST' && url.pathname === '/api/group/create') {
+      const { spot, durMin } = await body(req);
+      if (sessions.get(me.id) || memberGroups(me.id).length) return send(res, 409, { error: 'already linked' });
+      const d = [30, 60, 120, 0].includes(+durMin) ? +durMin : 60;
+      const [spotX, spotY] = spotXY(String(spot || 'Moksha Ground'));
+      const g = { id: rid('grp-'), spot: String(spot || 'Moksha Ground').slice(0, 60), spotX, spotY, endsAt: d === 0 ? null : now() + d * 60e3, host: me.id, members: [me.id], invites: [] };
+      groups.set(g.id, g);
+      return send(res, 200, { ok: true, group: groupPublic(g) });
+    }
+    if (req.method === 'POST' && url.pathname === '/api/group/invite') {
+      const { groupId, to } = await body(req);
+      const g = groups.get(groupId);
+      const peer = users.get(to);
+      if (!g || !g.members.includes(me.id)) return send(res, 404, { error: 'no group' });
+      if (!peer) return send(res, 404, { error: 'user offline' });
+      if (g.members.includes(to) || g.invites.includes(to)) return send(res, 200, { ok: true, dup: true });
+      g.invites.push(to);
+      if (peer.bot) {
+        setTimeout(() => {
+          if (!groups.has(g.id) || g.members.includes(to)) return;
+          g.invites = g.invites.filter((x) => x !== to);
+          g.members.push(to);
+          groupCast(g, { type: 'group_update', group: groupPublic(g) });
+        }, 2000 + Math.random() * 2500);
+        return send(res, 200, { ok: true, pending: true });
+      }
+      const got = sendTo(to, { type: 'group_invite', group: groupPublic(g), fromName: me.name });
+      if (!got) notifyPush(to, { title: `⚡ ${me.name} invited you to link up`, body: g.spot, view: 'friends' });
+      return send(res, 200, { ok: true, delivered: got });
+    }
+    if (req.method === 'POST' && url.pathname === '/api/group/join') {
+      const { groupId } = await body(req);
+      const g = groups.get(groupId);
+      if (!g) return send(res, 404, { error: 'group gone' });
+      if (sessions.get(me.id) || (memberGroups(me.id).length && !g.members.includes(me.id))) return send(res, 409, { error: 'already linked' });
+      if (!g.invites.includes(me.id) && !g.members.includes(me.id)) return send(res, 403, { error: 'not invited' });
+      g.invites = g.invites.filter((x) => x !== me.id);
+      if (!g.members.includes(me.id)) g.members.push(me.id);
+      groupCast(g, { type: 'group_update', group: groupPublic(g) });
+      return send(res, 200, { ok: true, group: groupPublic(g) });
+    }
+    if (req.method === 'POST' && url.pathname === '/api/group/leave') {
+      const { groupId } = await body(req);
+      const g = groups.get(groupId);
+      if (!g) return send(res, 200, { ok: true });
+      g.members = g.members.filter((x) => x !== me.id);
+      if (!g.members.length) { groups.delete(groupId); return send(res, 200, { ok: true, dissolved: true }); }
+      if (g.host === me.id) g.host = g.members[0];
+      groupCast(g, { type: 'group_update', group: groupPublic(g) });
+      return send(res, 200, { ok: true });
+    }
+    if (req.method === 'POST' && url.pathname === '/api/group/end') {
+      const { groupId } = await body(req);
+      const g = groups.get(groupId);
+      if (!g || g.host !== me.id) return send(res, 403, { error: 'host only' });
+      groups.delete(groupId);
+      groupCast(g, { type: 'group_end', groupId });
+      return send(res, 200, { ok: true });
+    }
+    if (req.method === 'POST' && url.pathname === '/api/group/chat') {
+      const { groupId, text } = await body(req);
+      const g = groups.get(groupId);
+      const t = String(text || '').slice(0, 500);
+      if (!g || !g.members.includes(me.id) || !t) return send(res, 400, { error: 'bad message' });
+      const m = { from: me.id, text: t, t: new Date().toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' }) };
+      const k = 'group:' + groupId;
+      if (!chats.has(k)) chats.set(k, []);
+      chats.get(k).push(m);
+      if (chats.get(k).length > 50) chats.get(k).shift();
+      groupCast(g, { type: 'group_chat', groupId, ...m, fromName: me.name }, me.id);
+      return send(res, 200, { ok: true });
+    }
+    if (req.method === 'GET' && url.pathname === '/api/groups/mine') {
+      return send(res, 200, { groups: memberGroups(me.id).map(groupPublic) });
+    }
     /* admin */
     if (req.method === 'POST' && url.pathname === '/api/admin/login') {
       const { code } = await body(req);

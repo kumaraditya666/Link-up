@@ -82,11 +82,13 @@ input{font-family:inherit}
 .chip.tilt{border-style:dashed}
 #mapControls{position:absolute;right:12px;top:64px;display:flex;flex-direction:column;gap:8px;z-index:5}
 #mapControls button{width:42px;height:42px;border-radius:14px;border:1px solid var(--line);background:#0b1122e6;color:#fff;font-size:19px;backdrop-filter:blur(10px)}
-#linkupBanner{position:absolute;top:60px;left:12px;right:12px;max-width:520px;margin:0 auto;z-index:6;display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#7c3aedee,#06b6d4ee);border-radius:18px;padding:10px 12px;box-shadow:var(--shadow)}
-#linkupBanner .lu-pulse{font-size:26px;animation:bob 1.4s infinite}
+#linkupBanner,#groupBanner{position:absolute;top:60px;left:12px;right:12px;max-width:520px;margin:0 auto;z-index:6;display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#7c3aedee,#06b6d4ee);border-radius:18px;padding:10px 12px;box-shadow:var(--shadow)}
+#linkupBanner[hidden],#groupBanner[hidden]{display:none}
+#groupBanner{background:linear-gradient(135deg,#7c3aedee,#f59e0bee)}
+#linkupBanner .lu-pulse,#groupBanner .lu-pulse{font-size:26px;animation:bob 1.4s infinite}
 @keyframes bob{50%{transform:scale(1.15) rotate(-6deg)}}
-#linkupBanner strong{letter-spacing:2px;font-size:14px;display:block}
-#linkupBanner small{opacity:.9;font-size:12px}
+#linkupBanner strong,#groupBanner strong{letter-spacing:2px;font-size:14px;display:block}
+#linkupBanner small,#groupBanner small{opacity:.9;font-size:12px}
 .lu-actions{margin-left:auto;display:flex;gap:8px}
 .lu-actions button{border:0;border-radius:12px;padding:9px 13px;font-weight:800;background:#ffffff26;color:#fff}
 #mapSheet{position:absolute;left:10px;right:10px;bottom:10px;z-index:5;background:#0b1122e8;border:1px solid var(--line);border-radius:22px;padding:10px 12px 12px;backdrop-filter:blur(18px);box-shadow:var(--shadow);max-width:860px;margin:0 auto}
@@ -194,7 +196,7 @@ input{font-family:inherit}
   #toasts{bottom:20px}
   .msg-layout{grid-template-columns:320px 1fr}
   #mapSheet{left:20px;right:auto;bottom:20px;width:420px}
-  #linkupBanner{left:20px;right:auto;width:420px}
+  #linkupBanner,#groupBanner{left:20px;right:auto;width:420px}
 }
 @media(max-width:640px){.brand-text small{display:none}.search-wrap kbd{display:none}.live-dot{display:none}}
 :focus-visible{outline:2px solid #22d3ee;outline-offset:2px}
