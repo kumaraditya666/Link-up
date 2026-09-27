@@ -169,12 +169,14 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, { ok: true });
     }
     if (req.method === 'GET' && url.pathname === '/api/live') {
+      if (!me) return send(res, 401, { error: 'unauthorized' });
       res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive', 'Access-Control-Allow-Origin': '*' });
       res.write(`data: ${JSON.stringify({ type: 'hello', you: me.id, roster: roster() })}\n\n`);
+      res.on('error', () => {}); // dead sockets must never take the server down
       if (!streams.has(me.id)) streams.set(me.id, new Set());
       streams.get(me.id).add(res);
       const hb = setInterval(() => { try { res.write(':hb\n\n'); } catch {} }, 20000);
-      req.on('close', () => { clearInterval(hb); streams.get(me.id)?.delete(res); });
+      req.on('close', () => { clearInterval(hb); try { streams.get(me.id)?.delete(res); } catch {} });
       return;
     }
     if (req.method === 'GET' && url.pathname === '/api/events') return send(res, 200, events.filter((e) => e.published));
@@ -263,3 +265,6 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => console.log(`Link Up live server on http://localhost:${PORT}`));
+/* failsafe: a LAN demo server must survive client aborts, never crash-loop */
+process.on('uncaughtException', (e) => console.error('[live-server] uncaught:', e?.message));
+process.on('unhandledRejection', (e) => console.error('[live-server] unhandled:', e?.message));
