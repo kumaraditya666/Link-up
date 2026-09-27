@@ -50,7 +50,7 @@ const PLAZAS = [
 const PARKING = { x: 250, y: 438, w: 70, d: 26 };
 const FIELDS = [
   { id: 'sports', x: 780, y: 470, w: 150, d: 100, track: true, goals: true },
-  { id: 'moksha-ground', x: 475, y: 295, w: 260, d: 60, markings: true, dirt: true },
+  { id: 'moksha-ground', x: 475, y: 288, w: 270, d: 56, markings: true, dirt: true },
   { id: 'amul-ground', x: 230, y: 235, w: 140, d: 80, plain: true },
   { id: 'nescii2', x: 210, y: 300, w: 110, d: 70, plain: true },
   { id: 'nescii1', x: 270, y: 420, w: 110, d: 70, plain: true, dirt: true },
@@ -69,7 +69,7 @@ const PLACEMENTS = [
   { m: 'kiosk', id: 'safal', x: 380, y: 205 },
   { m: 'kiosk', id: 'stationary', x: 510, y: 215 },
   { m: 'academic', id: 'academic-a', x: 430, y: 400 },
-  { m: 'academic', id: 'academic-b', x: 490, y: 340 },
+  { m: 'academic', id: 'academic-b', x: 490, y: 360 },
   { m: 'gym', id: 'gym', x: 630, y: 357 },
   { m: 'guest', id: 'guest', x: 400, y: 490 },
   { m: 'design', id: 'design', x: 130, y: 100 },
@@ -80,7 +80,7 @@ const PLACEMENTS = [
 const FOOT = [
   [345, 355, 36, 62], [550, 395, 70, 40], [425, 225, 70, 45], [460, 180, 65, 32],
   [200, 160, 60, 40], [300, 190, 60, 40], [470, 540, 60, 40], [130, 100, 55, 35],
-  [430, 400, 55, 45], [490, 340, 55, 45],
+  [430, 400, 55, 45], [490, 360, 55, 45],
   [630, 357, 50, 35], [400, 490, 40, 30], [550, 238, 40, 30], [300, 358, 22, 22],
   [380, 205, 16, 14], [510, 215, 16, 14],
 ];
@@ -411,7 +411,7 @@ export function createMap(canvas, opts = {}) {
 
   /* ---------- people + vehicles ---------- */
   {
-    const spots = [[460, 200], [475, 330], [550, 415], [230, 260], [780, 500], [300, 382], [360, 395]];
+    const spots = [[460, 200], [475, 300], [550, 415], [230, 260], [780, 500], [300, 382], [600, 348]];
     const rng = mulberry(77);
     const geo = new THREE.CapsuleGeometry(1.1, 2.4, 3, 8);
     const mat = new THREE.MeshStandardMaterial({ roughness: 0.9 });
@@ -763,15 +763,18 @@ export function createMap(canvas, opts = {}) {
     const v = new THREE.Vector3();
     let li = 0;
     const pxPerUnit = (state.h / 2) / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) / cam.dist;
-    const use = (x, y, z, text, dimmed) => {
+    const use = (x, y, z, text, dimmed, person) => {
       v.set(GX(x), z, GZ(y)).project(camera);
       if (v.z > 1 || v.x < -1.05 || v.x > 1.05 || v.y < -1.05 || v.y > 1.05) return;
       const el = getLabel(li++);
       el.style.display = 'block';
       el.style.left = ((v.x * 0.5 + 0.5) * state.w) + 'px';
       el.style.top = ((-v.y * 0.5 + 0.5) * state.h) + 'px';
-      el.textContent = text;
+      el.textContent = (person ? '● ' : '') + text;
       el.style.opacity = dimmed ? 0.4 : 1;
+      if (person === 'you') { el.style.background = '#b7ff2a'; el.style.borderColor = '#b7ff2a'; el.style.color = '#0b0e05'; }
+      else if (person) { el.style.background = '#0e1405'; el.style.borderColor = '#b7ff2a66'; el.style.color = '#fff'; }
+      else { el.style.background = 'rgba(6,10,21,0.8)'; el.style.borderColor = 'rgba(255,255,255,0.18)'; el.style.color = '#e6ebff'; }
     };
     for (const L of labelDefs) {
       const d = Math.hypot(camera.position.x - GX(L.x), camera.position.z - GZ(L.y));
@@ -787,10 +790,10 @@ export function createMap(canvas, opts = {}) {
     if (!state.ghost && (state.layer === 'friends' || state.layer === 'events')) {
       for (const f of friendsRef.list) {
         if (!f.online) continue;
-        use(f.x, f.y, 26, f.name.split(' ')[0], false);
+        use(f.x, f.y, 26, f.name.split(' ')[0], false, 'friend');
       }
     }
-    use(ME_POS.x, ME_POS.y, 14, 'YOU', false);
+    use(ME_POS.x, ME_POS.y, 14, 'YOU', false, 'you');
     if (state.mokshaEventId) {
       const ev = EventStore.get(state.mokshaEventId);
       if (ev && ev.campus_x != null) use(ev.campus_x, ev.campus_y, 26, `📍 ${ev.venue_name}`, false);

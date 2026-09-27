@@ -51,8 +51,8 @@ function seed() {
     {
       id: 'mok-main', name: 'Moksha — Main Stage', category: 'Shows', festival: 'Moksha',
       venue_name: 'Moksha Ground', venue_id: 'moksha-ground', campus_x: 475, campus_y: 295,
-      ...approxLatLng(475, 295),
-      latitude: approxLatLng(475, 295).lat, longitude: approxLatLng(475, 295).lng,
+      ...approxLatLng(475, 288),
+      latitude: approxLatLng(475, 288).lat, longitude: approxLatLng(475, 288).lng,
       start_time: iso(now - 2 * H), end_time: iso(now + 6 * H),
       description: 'Flagship Moksha stage on the big central ground — opening acts, headliners and the famous fest crowd.',
       verified: true, published: true, crowd: null, interested_base: 412,
@@ -76,7 +76,7 @@ function seed() {
     {
       id: 'mok-starnight', name: 'Star Night — EDM Headliner', category: 'Music', festival: 'Moksha',
       venue_name: 'Moksha Ground', venue_id: 'moksha-ground', campus_x: 475, campus_y: 295,
-      latitude: approxLatLng(475, 295).lat, longitude: approxLatLng(475, 295).lng,
+      latitude: approxLatLng(475, 288).lat, longitude: approxLatLng(475, 288).lng,
       start_time: iso(now + 9 * H), end_time: iso(now + 12 * H),
       description: 'Closing-night headliner set with full stage lighting. Wristbands at the SAC desk.',
       verified: true, published: true, crowd: null, interested_base: 530,

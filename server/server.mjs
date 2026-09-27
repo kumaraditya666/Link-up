@@ -74,8 +74,8 @@ function groupCast(g, msg, skip) {
 }
 
 /* ---------- campus flavor ---------- */
-const POIS = [['Moksha Ground', 475, 300], ['SAC & Library', 550, 400], ['Student Canteen', 460, 185], ['Amul Ground', 230, 240], ['Admin Block', 345, 360], ['Flag Circle', 270, 368], ['Sports Complex', 780, 470], ['APJ Complex', 425, 230], ['Boys Hostel', 250, 175], ['Main Gate', 60, 450]];
-const WPS = [[60, 140], [250, 140], [460, 140], [60, 300], [230, 265], [475, 330], [345, 390], [550, 390], [660, 380], [780, 450], [450, 550], [270, 420], [60, 450], [60, 600], [400, 500]];
+const POIS = [['Moksha Ground', 475, 290], ['SAC & Library', 550, 400], ['Student Canteen', 460, 185], ['Amul Ground', 230, 240], ['Admin Block', 345, 360], ['Flag Circle', 300, 358], ['Sports Complex', 780, 470], ['APJ Complex', 425, 230], ['Boys Hostel', 250, 175], ['Main Gate', 60, 450]];
+const WPS = [[60, 140], [250, 140], [460, 140], [60, 300], [230, 265], [475, 322], [345, 390], [550, 390], [660, 380], [780, 450], [450, 550], [270, 420], [60, 450], [60, 600], [400, 500]];
 const spotFor = (x, y) => {
   let best = null, bd = 1e9;
   for (const [n, px, py] of POIS) { const d = Math.hypot(x - px, y - py); if (d < bd) { bd = d; best = n; } }
@@ -83,13 +83,13 @@ const spotFor = (x, y) => {
 };
 /* meet-spot name -> campus coords (shared with client SPOTS list) */
 const SPOT_XY = {
-  'Moksha Ground': [475, 295], 'Student Canteen': [460, 180], 'SAC Lawns': [520, 390],
-  'Amul Ground': [230, 235], 'Central Library': [550, 395], 'Flag Circle': [270, 365],
+  'Moksha Ground': [475, 288], 'Student Canteen': [460, 180], 'SAC Lawns': [520, 390],
+  'Amul Ground': [230, 235], 'Central Library': [550, 395], 'Flag Circle': [300, 358],
   SAC: [550, 395], Library: [550, 395],
 };
 const spotXY = (spot) => {
   const k = String(spot || '').replace(/^Near\s+/, '');
-  return SPOT_XY[k] || [475, 295];
+  return SPOT_XY[k] || [475, 288];
 };
 /* bots keep the map alive even with one client */
 const BOTS = [

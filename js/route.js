@@ -8,7 +8,7 @@ export const METERS = 0.9;
 /* meet-spot name -> campus coords (server mirrors this table) */
 export const SPOT_XY = {
   'Moksha Ground': [475, 295], 'Student Canteen': [460, 180], 'SAC Lawns': [520, 390],
-  'Amul Ground': [230, 235], 'Central Library': [550, 395], 'Flag Circle': [270, 365],
+  'Amul Ground': [230, 235], 'Central Library': [550, 395], 'Flag Circle': [300, 358],
   SAC: [550, 395], Library: [550, 395],
 };
 export function spotXY(spot) {
@@ -29,14 +29,14 @@ export const ROADS = [
   { name: 'Canteen Spur', pts: [[460, 140], [460, 170]], w: 4, kind: 'path' },
   { name: 'APJ Lane', pts: [[360, 250], [660, 250]], w: 8, kind: 'road' },
   { name: 'Amul Link', pts: [[230, 140], [230, 320]], w: 5, kind: 'path' },
-  { name: 'NESCII Lane', pts: [[60, 300], [330, 315]], w: 5, kind: 'path' },
+  { name: 'NESCII Lane', pts: [[60, 300], [330, 322]], w: 5, kind: 'path' },
   { name: 'Moksha North', pts: [[330, 265], [660, 265]], w: 8, kind: 'road' },
-  { name: 'Moksha Cross', pts: [[475, 265], [475, 330]], w: 5, kind: 'path' },
-  { name: 'Moksha South', pts: [[330, 315], [560, 330], [560, 265]], w: 5, kind: 'path' },
+  { name: 'South Drive', pts: [[330, 322], [660, 322]], w: 8, kind: 'road' },
+  { name: 'Moksha Link', pts: [[560, 322], [560, 265]], w: 5, kind: 'path' },
   { name: 'Main Entry', pts: [[60, 450], [270, 420], [345, 380]], w: 10, kind: 'road' },
   { name: 'Flag Link', pts: [[300, 313], [300, 399]], w: 5, kind: 'path' },
   { name: 'Admin Walk', pts: [[300, 360], [318, 360]], w: 4, kind: 'path' },
-  { name: 'Flag Cut', pts: [[290, 399], [330, 315]], w: 4, kind: 'path' },
+  { name: 'Flag Cut', pts: [[290, 399], [330, 322]], w: 4, kind: 'path' },
   { name: 'Academic Row', pts: [[270, 400], [660, 380]], w: 10, kind: 'road' },
   { name: 'Stadium Way', pts: [[660, 380], [780, 440]], w: 8, kind: 'road' },
   { name: 'East Road', pts: [[660, 140], [660, 620]], w: 10, kind: 'road' },
