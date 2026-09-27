@@ -23,12 +23,6 @@
     "x": 430,
     "y": 400
   },
-  "nescii": {
-    "high": "models/nescii-high.glb",
-    "low": "models/nescii-low.glb",
-    "x": 210,
-    "y": 300
-  },
   "gym": {
     "high": "models/gym-high.glb",
     "low": "models/gym-low.glb",

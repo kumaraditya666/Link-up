@@ -176,7 +176,6 @@ const SPECS = {
   library: { wall: '#c8bfae', roof: '#6f7d8c', trim: '#0e7490', entrance: 'S', floors: 3, stepsWide: 34, blocks: [{ ox: 0, oz: 0, w: 112, d: 50, h: 13, glass: 'S' }, { ox: -70, oz: -4, w: 40, d: 36, h: 9 }] },
   apj: { wall: '#b7bdc9', roof: '#5d6673', trim: '#8a93a3', entrance: 'W', floors: 3, blocks: [{ ox: -10, oz: 0, w: 120, d: 42, h: 14 }, { ox: 55, oz: 34, w: 34, d: 62, h: 14 }] },
   academic: { wall: '#b7bdc9', roof: '#5d6673', trim: '#31437c', entrance: 'S', floors: 3, blocks: [{ ox: 0, oz: -4, w: 64, d: 40, h: 13 }, { ox: -40, oz: 12, w: 22, d: 44, h: 10 }, { ox: 40, oz: 12, w: 22, d: 44, h: 10 }] },
-  nescii: { wall: '#bcc8b4', roof: '#3f5a44', trim: '#166534', entrance: 'S', floors: 2, doorWide: 16, blocks: [{ ox: 0, oz: 0, w: 96, d: 60, h: 8 }] },
   gym: { wall: '#bcc8b4', roof: '#3f5a44', trim: '#166534', entrance: 'S', floors: 2, doorWide: 14, blocks: [{ ox: 0, oz: 0, w: 80, d: 44, h: 10 }] },
   girls: { wall: '#c2b8a4', roof: '#6e6252', trim: '#334155', entrance: 'S', floors: 4, blocks: [{ ox: 0, oz: 0, w: 96, d: 36, h: 14 }] },
   guest: { wall: '#c9c2b2', roof: '#6e6252', trim: '#6e6252', entrance: 'S', floors: 2, blocks: [{ ox: 0, oz: 0, w: 44, d: 28, h: 7 }] },

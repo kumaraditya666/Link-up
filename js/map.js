@@ -52,6 +52,8 @@ const FIELDS = [
   { id: 'sports', x: 780, y: 470, w: 150, d: 100, track: true, goals: true },
   { id: 'moksha-ground', x: 475, y: 295, w: 260, d: 60, markings: true, dirt: true },
   { id: 'amul-ground', x: 230, y: 235, w: 140, d: 80, plain: true },
+  { id: 'nescii2', x: 210, y: 300, w: 110, d: 70, plain: true },
+  { id: 'nescii1', x: 270, y: 420, w: 110, d: 70, plain: true, dirt: true },
 ];
 /* model placements: {m: model file id, id: pick/map id, x, y, ry?} */
 const PLACEMENTS = [
@@ -68,8 +70,6 @@ const PLACEMENTS = [
   { m: 'kiosk', id: 'stationary', x: 510, y: 215 },
   { m: 'academic', id: 'academic-a', x: 430, y: 400 },
   { m: 'academic', id: 'academic-b', x: 490, y: 340 },
-  { m: 'nescii', id: 'nescii2', x: 210, y: 300 },
-  { m: 'nescii', id: 'nescii1', x: 270, y: 420 },
   { m: 'gym', id: 'gym', x: 630, y: 357 },
   { m: 'guest', id: 'guest', x: 400, y: 490 },
   { m: 'design', id: 'design', x: 130, y: 100 },
@@ -80,14 +80,14 @@ const PLACEMENTS = [
 const FOOT = [
   [345, 355, 70, 40], [550, 395, 70, 40], [425, 225, 70, 45], [460, 180, 65, 32],
   [200, 160, 60, 40], [300, 190, 60, 40], [470, 540, 60, 40], [130, 100, 55, 35],
-  [430, 400, 55, 45], [490, 340, 55, 45], [210, 300, 65, 45], [270, 420, 65, 45],
+  [430, 400, 55, 45], [490, 340, 55, 45],
   [630, 357, 50, 35], [400, 490, 40, 30], [550, 238, 40, 30], [270, 365, 25, 25],
-  [380, 205, 16, 14], [510, 215, 16, 14], [480, 200, 14, 12],
+  [380, 205, 16, 14], [510, 215, 16, 14],
 ];
 const HEIGHTS = {
   admin: 17, 'sac-lib': 15, apj: 16, smart: 12, canteen: 9, gym: 12,
   'boys-a': 19, 'boys-b': 19, girls: 16, design: 14, 'north-gate': 16, 'main-gate': 16,
-  safal: 6, stationary: 6, 'academic-a': 15, 'academic-b': 15, nescii2: 10, nescii1: 10,
+  safal: 6, stationary: 6, 'academic-a': 15, 'academic-b': 15, nescii2: 3, nescii1: 3,
   guest: 9, flag: 22, 'moksha-ground': 4, 'amul-ground': 4, sports: 6,
 };
 const ME_POS = { x: 350, y: 400 };
