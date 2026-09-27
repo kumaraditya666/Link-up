@@ -70,7 +70,7 @@ const PLACEMENTS = [
   { m: 'kiosk', id: 'stationary', x: 510, y: 215 },
   { m: 'academic', id: 'academic-a', x: 430, y: 400 },
   { m: 'academic', id: 'academic-b', x: 490, y: 360 },
-  { m: 'gym', id: 'gym', x: 630, y: 357 },
+  { m: 'gym', id: 'gym', x: 632, y: 405 },
   { m: 'guest', id: 'guest', x: 400, y: 490 },
   { m: 'design', id: 'design', x: 130, y: 100 },
   { m: 'smart', id: 'smart', x: 550, y: 238 },
@@ -81,13 +81,12 @@ const FOOT = [
   [345, 355, 36, 62], [550, 395, 70, 40], [425, 225, 70, 45], [460, 180, 65, 32],
   [200, 160, 60, 40], [300, 190, 60, 40], [470, 540, 60, 40], [130, 100, 55, 35],
   [430, 400, 55, 45], [490, 360, 55, 45],
-  [630, 357, 50, 35], [400, 490, 40, 30], [550, 238, 40, 30], [300, 358, 22, 22],
-  [380, 205, 16, 14], [510, 215, 16, 14],
+  [632, 405, 28, 24], [400, 490, 40, 30], [550, 238, 40, 30], [300, 358, 22, 22],  [380, 205, 16, 14], [510, 215, 16, 14],
 ];
 const HEIGHTS = {
   admin: 17, 'sac-lib': 15, apj: 16, smart: 12, canteen: 9, gym: 12,
   'boys-a': 19, 'boys-b': 19, girls: 16, design: 14, 'north-gate': 16, 'main-gate': 16,
-  safal: 6, stationary: 6, 'academic-a': 15, 'academic-b': 15, nescii2: 3, nescii1: 3,
+  safal: 6, stationary: 6, 'academic-a': 15, 'academic-b': 15, nescii2: 3, nescii1: 3, gym: 7,
   guest: 9, flag: 22, 'moksha-ground': 4, 'amul-ground': 4, sports: 6,
 };
 const ME_POS = { x: 350, y: 400 };

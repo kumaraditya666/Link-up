@@ -37,7 +37,7 @@ export const BUILDINGS = [
   { id: 'academic-a', label: 'Academic Block', x: 430, y: 400, w: 90, h: 56, c: '#31437c', food: false },
   { id: 'academic-b', label: 'Academic Block', x: 490, y: 360, w: 90, h: 56, c: '#31437c', food: false },
   { id: 'sac-lib', label: 'SAC · Library', x: 550, y: 395, w: 110, h: 56, c: '#6d28d9', food: false, hot: true },
-  { id: 'gym', label: 'Gym', x: 630, y: 357, w: 70, h: 44, c: '#166534', food: false },
+  { id: 'gym', label: 'Gym', x: 632, y: 405, w: 40, h: 34, c: '#166534', food: false },
   { id: 'flag', label: 'Flag Circle', x: 300, y: 358, w: 50, h: 50, c: '#a8912f', food: false },
   { id: 'nescii1', label: 'NESCII 1', x: 270, y: 420, w: 110, h: 70, c: '#3f5a44', food: false },
   { id: 'main-gate', label: 'Main Gate', x: 30, y: 450, w: 40, h: 26, c: '#334155', food: false },
@@ -47,7 +47,7 @@ export const BUILDINGS = [
 ];
 
 export const PLACES = [
-  { id: 'sac-lib', name: 'SAC & Central Library', short: 'Library', cat: 'study', emoji: '📚', rating: 4.8, busy: 'Lively days', visited: true, desc: 'SAC at ground (Students Activity Center), Library on 1st, Computer Centre on 2nd, Gym on 3rd.', hours: '8 AM – 10 PM' },
+  { id: 'sac-lib', name: 'SAC & Central Library', short: 'Library', cat: 'study', emoji: '📚', rating: 4.8, busy: 'Lively days', visited: true, desc: 'SAC semi-underground, Library on half-upper-ground + 1st floor, Computer Centre on 2nd. Gym sits behind it, semi-ground floor.', hours: '8 AM – 10 PM' },
   { id: 'canteen', name: 'Student Canteen', short: 'Canteen', cat: 'food', emoji: '🍛', rating: 4.6, busy: 'Busy at lunch', visited: true, desc: 'Rajma chawal, momos, cold coffee up north. Legends are made in this queue.', hours: '8 AM – 8 PM' },
   { id: 'moksha-ground', name: 'Moksha Ground', short: 'Moksha', cat: 'hangout', emoji: '🎭', rating: 4.9, busy: 'Fest season 🔥', visited: true, desc: 'The big central ground — Moksha main stage territory and evening crowds.', hours: 'Open · best at 6 PM' },
   { id: 'amul-ground', name: 'Amul Ground', short: 'Amul', cat: 'hangout', emoji: '🌳', rating: 4.4, busy: 'Chill', visited: false, desc: 'Green breather next to APJ. Frisbee, adda and pre-class naps.', hours: 'Open all day' },
