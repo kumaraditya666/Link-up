@@ -1,7 +1,7 @@
 /* Link Up — NSUT, but connected. App controller (map + social + Moksha live layer) build 6 */
 import { ME, SPOTS, FRIENDS, PLACES, EVENTS, TRAILS, THREADS, QUICK, BUILDINGS } from './data.js';
 import { createMap } from './map.js';
-import { route } from './route.js';
+import { route, spotXY, sessionStats } from './route.js';
 import { Notify, dueReminders } from './notify.js';
 import { Social } from './social.js';
 import { Net } from './net.js';
@@ -519,7 +519,7 @@ $('#incAccept').onclick = async () => {
   if (S.liveReq && S.liveReq.from === fid && Net.live) {
     const req = S.liveReq; S.liveReq = null;
     const r = await Net.respondLinkup(fid, true, S.incDur);
-    if (r.data.ok) startSession(fid, r.data.spot, 0, 'incoming', r.data.endsAt ?? null);
+    if (r.data.ok) startSession(fid, r.data.spot, 0, 'incoming', r.data.endsAt ?? null, r.data.spotX != null ? [r.data.spotX, r.data.spotY] : null);
     else toast('That request expired ⏳');
     return;
   }
@@ -535,16 +535,23 @@ function acceptIncoming(fid) {
   S.incomingQueue = S.incomingQueue.filter((q) => q.id !== fid);
   startSession(fid, f.spot.replace('Near ', ''), S.incDur, 'incoming');
 }
-function startSession(fid, spot, durMin, dir, endsAtOverride = null) {
+function startSession(fid, spot, durMin, dir, endsAtOverride = null, xyOverride = null) {
   const f = getPerson(fid) || { name: 'Someone', short: '?' };
+  const [sx, sy] = xyOverride || spotXY(spot);
   S.session = {
     withId: fid, withName: f.name.split(' ')[0], fullName: f.name,
     spot: spot.startsWith('Near') ? spot : `Near ${spot}`,
+    spotX: sx, spotY: sy, meNotified: false, peerNotified: false,
     endsAt: endsAtOverride !== null && endsAtOverride !== undefined ? endsAtOverride : (durMin === 0 ? null : Date.now() + durMin * 60 * 1000),
     totalMin: durMin, startedAt: Date.now(), dir,
   };
   S.outgoing = null;
   Social.recordLinkup();
+  // live tracking: route from you to the meet spot
+  try {
+    const r = route([map.mePos.x, map.mePos.y], [sx, sy]);
+    if (r) { map.setRoute({ pts: r.pts, to: { x: sx, y: sy } }); S.sessionRoute = true; }
+  } catch {}
   persist(); updateBanner(); renderFriends(); showLinked();
   pushMsg(fid, 'them', `🤝 LINKED UP — ${S.session.spot}! See you in 5?`);
   if (S.activeChat === fid) renderChat();
@@ -564,7 +571,9 @@ function endSession(msg, remote = false) {
     pushMsg(S.session.withId, 'me', 'Ending our link up — that was fun! 🤙');
     if (wasLive && Net.live) Net.endLink();
   }
-  S.session = null; persist(); updateBanner(); renderFriends(); renderSheet();
+  S.session = null;
+  if (S.sessionRoute) { S.sessionRoute = false; map.setRoute(null); }
+  persist(); updateBanner(); renderFriends(); renderSheet();
   toast(msg || 'Link Up ended.');
 }
 function tickLinked() {
@@ -586,8 +595,21 @@ function updateBanner() {
   if (!S.session) { b.hidden = true; return; }
   b.hidden = false;
   $('#linkupBannerTitle').textContent = `🤝 LINKED UP · ${S.session.withName.toUpperCase()}`;
-  const left = S.session.endsAt ? fmtLeft(S.session.endsAt - Date.now()) + ' left' : 'live until ended';
-  $('#linkupBannerSub').textContent = `${S.session.spot} · ${left}`;
+  let sub = S.session.spot;
+  if (S.session.spotX != null) {
+    const peer = Net.live ? Net.person(S.session.withId) : null;
+    const st = sessionStats(map.mePos.x, map.mePos.y, peer, S.session.spotX, S.session.spotY);
+    if (st.meArrived && !S.session.meNotified) { S.session.meNotified = true; persist(); toast(`You arrived at ${S.session.spot} 🎉`); }
+    if (st.peerArrived && !S.session.peerNotified) { S.session.peerNotified = true; persist(); toast(`${S.session.withName} arrived at ${S.session.spot} 🎉`); }
+    const left = S.session.endsAt ? fmtLeft(S.session.endsAt - Date.now()) + ' left' : 'live until ended';
+    sub = st.meArrived && st.peerArrived ? `${S.session.spot} · both here 🎉 · ${left}`
+      : st.meArrived ? `${S.session.spot} · you’re here · ${S.session.withName} ${st.peerM ?? '?'}m away`
+      : `${S.session.spot} · you ${st.meM}m${peer ? ` · ${S.session.withName} ${st.peerM}m` : ''} · ${left}`;
+  } else {
+    const left = S.session.endsAt ? fmtLeft(S.session.endsAt - Date.now()) + ' left' : 'live until ended';
+    sub = `${S.session.spot} · ${left}`;
+  }
+  $('#linkupBannerSub').textContent = sub;
 }
 function fmtLeft(ms) {
   if (ms <= 0) return '00:00';
@@ -1010,7 +1032,7 @@ function boot() {
     showIncoming(m.from); // live requests preempt any open mock popup
     toast(`⚡ ${(getPerson(m.from)?.name || 'Someone').split(' ')[0]} wants to link up (live).`);
   });
-  Net.on('linkup_accept', (m) => { S.outgoing = null; startSession(m.from, m.spot, 0, 'outgoing', m.endsAt ?? null); });
+  Net.on('linkup_accept', (m) => { S.outgoing = null; startSession(m.from, m.spot, 0, 'outgoing', m.endsAt ?? null, m.spotX != null ? [m.spotX, m.spotY] : null); });
   Net.on('linkup_decline', () => { S.outgoing = null; persist(); renderFriends(); toast('They declined — another time 🤙'); });
   Net.on('linkup_expired', () => { S.outgoing = null; persist(); renderFriends(); toast('Live request expired ⏳'); });
   Net.on('session_end', (m) => endSession(m.expired ? 'Live Link Up ended ⏳' : 'They ended the hangout.', true));
@@ -1045,6 +1067,12 @@ function boot() {
   go(VIEWS.includes(start) ? start : 'map');
   renderSheet(); renderThreads(); updateBanner(); refreshMokshaHome();
   if (S.session) tickLinked();
+  if (S.session?.spotX != null) {
+    try {
+      const rr = route([map.mePos.x, map.mePos.y], [S.session.spotX, S.session.spotY]);
+      if (rr) { map.setRoute({ pts: rr.pts, to: { x: S.session.spotX, y: S.session.spotY } }); S.sessionRoute = true; }
+    } catch {}
+  }
   $('#sideStats').textContent = `${FRIENDS.filter((f) => f.online).length} friends live · ${PLACES.length} spots`;
   setInterval(() => {
     if (document.hidden || S.ghost) return;

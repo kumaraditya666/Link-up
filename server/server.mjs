@@ -54,6 +54,16 @@ const spotFor = (x, y) => {
   for (const [n, px, py] of POIS) { const d = Math.hypot(x - px, y - py); if (d < bd) { bd = d; best = n; } }
   return bd < 130 ? `Near ${best}` : 'Wandering NSUT';
 };
+/* meet-spot name -> campus coords (shared with client SPOTS list) */
+const SPOT_XY = {
+  'Moksha Ground': [475, 295], 'Student Canteen': [460, 180], 'SAC Lawns': [520, 390],
+  'Amul Ground': [230, 235], 'Central Library': [550, 395], 'Flag Circle': [270, 365],
+  SAC: [550, 395], Library: [550, 395],
+};
+const spotXY = (spot) => {
+  const k = String(spot || '').replace(/^Near\s+/, '');
+  return SPOT_XY[k] || [475, 295];
+};
 /* bots keep the map alive even with one client */
 const BOTS = [
   ['Aarav Kapoor', "CSE '27"], ['Diya Singh', "ECE '26"], ['Yash Thakur', "ME '25"],
@@ -212,9 +222,10 @@ const server = http.createServer(async (req, res) => {
           if (!requests.has(r.id) || sessions.get(me.id)) return;
           requests.delete(r.id);
           const endsAt = r.durMin === 0 ? null : now() + r.durMin * 60e3;
-          sessions.set(me.id, { id: rid('ses-'), with: peer.id, spot: r.spot, endsAt });
-          sessions.set(peer.id, { id: rid('ses-'), with: me.id, spot: r.spot, endsAt });
-          sendTo(me.id, { type: 'linkup_accept', from: peer.id, spot: r.spot, endsAt });
+          const [spotX, spotY] = spotXY(r.spot);
+          sessions.set(me.id, { id: rid('ses-'), with: peer.id, spot: r.spot, spotX, spotY, endsAt });
+          sessions.set(peer.id, { id: rid('ses-'), with: me.id, spot: r.spot, spotX, spotY, endsAt });
+          sendTo(me.id, { type: 'linkup_accept', from: peer.id, spot: r.spot, spotX, spotY, endsAt });
         }, 2500 + Math.random() * 2500);
         return send(res, 200, { ok: true, pending: true });
       }
@@ -230,10 +241,11 @@ const server = http.createServer(async (req, res) => {
       if (!accept) { sendTo(from, { type: 'linkup_decline', from: me.id }); return send(res, 200, { ok: true }); }
       const d = [30, 60, 120, 0].includes(+durMin) ? +durMin : r.durMin;
       const endsAt = d === 0 ? null : now() + d * 60e3;
-      sessions.set(me.id, { id: rid('ses-'), with: from, spot: r.spot, endsAt });
-      sessions.set(from, { id: rid('ses-'), with: me.id, spot: r.spot, endsAt });
-      sendTo(from, { type: 'linkup_accept', from: me.id, spot: r.spot, endsAt });
-      return send(res, 200, { ok: true, spot: r.spot, endsAt });
+      const [spotX, spotY] = spotXY(r.spot);
+      sessions.set(me.id, { id: rid('ses-'), with: from, spot: r.spot, spotX, spotY, endsAt });
+      sessions.set(from, { id: rid('ses-'), with: me.id, spot: r.spot, spotX, spotY, endsAt });
+      sendTo(from, { type: 'linkup_accept', from: me.id, spot: r.spot, spotX, spotY, endsAt });
+      return send(res, 200, { ok: true, spot: r.spot, spotX, spotY, endsAt });
     }
     if (req.method === 'POST' && url.pathname === '/api/linkup/end') { endSession(me.id); return send(res, 200, { ok: true }); }
     if (req.method === 'GET' && url.pathname === '/api/session') return send(res, 200, { session: sessions.get(me.id) || null });

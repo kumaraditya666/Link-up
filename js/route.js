@@ -5,6 +5,22 @@
  * to the nearest node with a straight connector flagged as off-path.
  */
 export const METERS = 0.9;
+/* meet-spot name -> campus coords (server mirrors this table) */
+export const SPOT_XY = {
+  'Moksha Ground': [475, 295], 'Student Canteen': [460, 180], 'SAC Lawns': [520, 390],
+  'Amul Ground': [230, 235], 'Central Library': [550, 395], 'Flag Circle': [270, 365],
+  SAC: [550, 395], Library: [550, 395],
+};
+export function spotXY(spot) {
+  const k = String(spot || '').replace(/^Near\s+/, '');
+  return SPOT_XY[k] || [475, 295];
+}
+/** live session distances (pure, testable) */
+export function sessionStats(meX, meY, peer, spotX, spotY) {
+  const meM = Math.round(Math.hypot(spotX - meX, spotY - meY) * METERS);
+  const peerM = peer ? Math.round(Math.hypot(spotX - peer.x, spotY - peer.y) * METERS) : null;
+  return { meM, peerM, meArrived: meM < 25, peerArrived: peerM !== null && peerM < 25 };
+}
 
 export const ROADS = [
   { name: 'West Perimeter', pts: [[60, 100], [60, 660]], w: 10, kind: 'road' },
