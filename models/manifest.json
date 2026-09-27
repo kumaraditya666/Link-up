@@ -1,0 +1,74 @@
+{
+  "admin": {
+    "high": "models/admin-high.glb",
+    "low": "models/admin-low.glb",
+    "x": 500,
+    "y": 140
+  },
+  "library": {
+    "high": "models/library-high.glb",
+    "low": "models/library-low.glb",
+    "x": 400,
+    "y": 210
+  },
+  "apj": {
+    "high": "models/apj-high.glb",
+    "low": "models/apj-low.glb",
+    "x": 620,
+    "y": 200
+  },
+  "sac": {
+    "high": "models/sac-high.glb",
+    "low": "models/sac-low.glb",
+    "x": 545,
+    "y": 300
+  },
+  "nescafe": {
+    "high": "models/nescafe-high.glb",
+    "low": "models/nescafe-low.glb",
+    "x": 620,
+    "y": 355
+  },
+  "canteen": {
+    "high": "models/canteen-high.glb",
+    "low": "models/canteen-low.glb",
+    "x": 500,
+    "y": 425
+  },
+  "sports": {
+    "high": "models/sports-high.glb",
+    "low": "models/sports-low.glb",
+    "x": 280,
+    "y": 550
+  },
+  "hostel": {
+    "high": "models/hostel-high.glb",
+    "low": "models/hostel-low.glb",
+    "x": 830,
+    "y": 190
+  },
+  "innovation": {
+    "high": "models/innovation-high.glb",
+    "low": "models/innovation-low.glb",
+    "x": 340,
+    "y": 330
+  },
+  "gate": {
+    "high": "models/gate-high.glb",
+    "low": "models/gate-low.glb",
+    "x": 500,
+    "y": 60
+  },
+  "amul": {
+    "high": "models/amul-high.glb",
+    "low": "models/amul-low.glb",
+    "x": 672,
+    "y": 238
+  },
+  "amphi": {
+    "high": "models/amphi-high.glb",
+    "low": "models/amphi-low.glb",
+    "x": 710,
+    "y": 452
+  }
+}

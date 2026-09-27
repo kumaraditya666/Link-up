@@ -95,6 +95,7 @@ input{font-family:inherit}
 .mini-card strong{font-size:13px;display:block}.mini-card small{color:var(--mut);font-size:12px}
 .mini-card button{margin-left:auto;border:0;background:var(--grad);color:#fff;font-weight:800;border-radius:10px;padding:7px 10px;font-size:12px}
 #mapTip{position:absolute;z-index:7;background:#0b1122f2;border:1px solid #7c3aed88;border-radius:14px;padding:10px 12px;font-size:13px;box-shadow:var(--shadow);max-width:240px;pointer-events:none}
+#mapCredit{position:absolute;left:12px;bottom:150px;z-index:5;font-size:10px;color:#ffffff99;background:#070b16aa;border:1px solid var(--line);border-radius:99px;padding:3px 10px;pointer-events:none}
 /* radar */
 #radar{position:relative;height:220px;border-radius:22px;background:radial-gradient(circle at 50% 55%,#7c3aed22,#0b1122 70%);border:1px solid var(--line);overflow:hidden;margin-bottom:14px}
 .ring{position:absolute;left:50%;top:58%;border:1px solid #7c3aed44;border-radius:50%;transform:translate(-50%,-50%)}

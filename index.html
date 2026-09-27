@@ -147,6 +147,7 @@
           <div id="sheetCards" class="h-scroll"></div>
         </div>
         <div id="mapTip" hidden></div>
+        <div id="mapCredit" title="Stylized miniature — building shapes are approximate">3D miniature · approximate</div>
       </div>
     </section>
 
@@ -370,6 +371,7 @@
   <div id="toasts" aria-live="polite"></div>
 </div>
 
+<script type="importmap">{"imports":{"three":"./js/vendor/three.module.js"}}</script>
 <script type="module" src="./js/app.js"></script>
 <script>
 if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(()=>{})); }
