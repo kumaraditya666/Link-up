@@ -10,6 +10,11 @@
   "background_color": "#070b16",
   "theme_color": "#070b16",
   "categories": ["social", "navigation", "education"],
+  "shortcuts": [
+    { "name": "Open Map", "url": "./#/map", "icons": [{ "src": "./icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Link Up", "url": "./#/friends", "icons": [{ "src": "./icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Messages", "url": "./#/messages", "icons": [{ "src": "./icons/icon-192.png", "sizes": "192x192" }] }
+  ],
   "icons": [
     {
       "src": "./icons/icon-192.png",

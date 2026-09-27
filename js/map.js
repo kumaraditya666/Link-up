@@ -309,36 +309,64 @@ export function createMap(canvas, opts = {}) {
     }
   }
 
-  /* ---------- GLB landmarks + LOD (models shared across placements) ---------- */
+  /* ---------- GLB landmarks + LOD (LOW now, HIGH lazily by proximity) ---------- */
   const lodObjs = [];
-  const cache = new Map();
+  const cache = new Map(); // model id -> {lo}
+  const lodByModel = new Map(); // model id -> [{lod, loObj}]
+  const hiLoaded = new Set();
   async function loadModels() {
     const ids = [...new Set(PLACEMENTS.filter((p) => !p.skip).map((p) => p.m))];
     await Promise.all(ids.map(async (id) => {
       try {
-        const [hi, lo] = await Promise.all([loadGLB(`models/${id}-high.glb`), loadGLB(`models/${id}-low.glb`)]);
-        cache.set(id, { hi, lo });
-        for (const m of hi.windowMats) windowMats.push(m);
+        const lo = await loadGLB(`models/${id}-low.glb`);
+        cache.set(id, { lo });
       } catch (e) { console.warn('model load failed', id, e); }
     }));
     for (const p of PLACEMENTS) {
       if (p.skip || !cache.has(p.m)) continue;
-      const { hi, lo } = cache.get(p.m);
+      const { lo } = cache.get(p.m);
       const lod = new THREE.LOD();
-      lod.addLevel(p.m === 'moksha-stage' ? hi.group : hi.group.clone(), 0);
-      lod.addLevel(lo.group.clone(), 950);
+      const loObj = lo.group.clone();
+      lod.addLevel(loObj, 0);
       lod.position.set(GX(p.x), 0, GZ(p.y));
       if (p.ry) lod.rotation.y = p.ry;
       lod.userData = { kind: 'place', id: p.id };
       lod.traverse((o) => { o.userData.pickRoot = lod; });
       scene.add(lod); lodObjs.push(lod); pickTargets.push(lod);
+      if (!lodByModel.has(p.m)) lodByModel.set(p.m, []);
+      lodByModel.get(p.m).push({ lod, loObj, x: p.x, y: p.y });
+    }
+  }
+  async function ensureHigh(id) {
+    if (hiLoaded.has(id) || !lodByModel.has(id)) return;
+    hiLoaded.add(id);
+    try {
+      const { group, windowMats: wm } = await loadGLB(`models/${id}-high.glb`);
+      for (const m of wm) windowMats.push(m);
+      for (const { lod, loObj } of lodByModel.get(id)) {
+        lod.addLevel(group.clone(), 0);
+        for (const lv of lod.levels) if (lv.object === loObj) lv.distance = 950;
+      }
+      applyMode(); // restyle fresh window glow for current time of day
+    } catch (e) { console.warn('high model failed', id, e); }
+  }
+  function lazyHighTick() {
+    for (const [id, list] of lodByModel) {
+      if (hiLoaded.has(id)) continue;
+      if (list.some((p) => Math.hypot(p.x - cam.tx, p.y - cam.ty) < 1300)) ensureHigh(id);
     }
   }
   loadModels();
-  let stageGroup = null, stageMats = [];
-  loadGLB('models/moksha-stage-high.glb').then(({ group, windowMats: wm }) => {
-    stageGroup = group; stageMats = wm; stageGroup.visible = false; scene.add(stageGroup);
-  }).catch(() => {});
+  let stageGroup = null, stageMats = [], stageLoading = false;
+  function ensureStage() {
+    if (stageGroup || stageLoading) return;
+    stageLoading = true;
+    loadGLB('models/moksha-stage-high.glb').then(({ group, windowMats: wm }) => {
+      stageGroup = group; stageMats = wm; stageGroup.visible = false; scene.add(stageGroup);
+      applyMode();
+      refreshMoksha();
+    }).catch(() => { stageLoading = false; });
+  }
 
   /* ---------- trees (inside boundary only) ---------- */
   function segDist(px, py, ax, ay, bx, by) {
@@ -495,6 +523,7 @@ export function createMap(canvas, opts = {}) {
     const active = festivalState('Moksha') !== 'ended' && evs.length;
     mokGroup.visible = !!active;
     if (!active) { if (stageGroup) stageGroup.visible = false; return; }
+    ensureStage();
     const main = evs.find((e) => eventStatus(e) === 'live') || evs[0];
     const st = eventStatus(main);
     if (stageGroup) {
@@ -760,7 +789,7 @@ export function createMap(canvas, opts = {}) {
 
   /* ---------- main loop ---------- */
   const clock = new THREE.Clock();
-  let refreshAt = 0;
+  let refreshAt = 0, lazyTick = 0;
   function draw() {
     requestAnimationFrame(draw);
     const dt = Math.min(0.05, clock.getDelta());
@@ -776,6 +805,8 @@ export function createMap(canvas, opts = {}) {
     applyCamera();
     for (const l of lodObjs) l.update(camera);
     if (Date.now() - refreshAt > 2500) { refreshAt = Date.now(); refreshMoksha(); }
+    lazyTick += dt;
+    if (lazyTick > 2) { lazyTick = 0; lazyHighTick(); }
     if (mokPulse && mokGroup.visible) {
       const s = 1 + 0.35 * Math.sin(state.t * 2.6);
       mokPulse.scale.set(s, s, 1);
