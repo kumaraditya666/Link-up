@@ -2,6 +2,7 @@
 import { ME, SPOTS, FRIENDS, PLACES, EVENTS, TRAILS, THREADS, QUICK, BUILDINGS } from './data.js';
 import { createMap } from './map.js';
 import { route } from './route.js';
+import { Notify, dueReminders } from './notify.js';
 import { Net } from './net.js';
 import {
   CATEGORIES, VENUES, venueById,
@@ -498,6 +499,7 @@ function showIncoming(fid) {
   $('#incSub').textContent = `${f.spot} · ${f.dist} m away`;
   $('#incomingModal').hidden = false;
   $('#incomingModal').dataset.fid = fid;
+  if (document.hidden) Notify.linkup(f.name.split(' ')[0]);
 }
 $('#incDecline').onclick = async () => {
   const fid = $('#incomingModal').dataset.fid;
@@ -595,6 +597,10 @@ setInterval(() => {
 setInterval(() => {
   refreshMokshaHome();
   if (!$('#mokshaCard').hidden && S.mokshaCardId) fillMokshaCard(EventStore.get(S.mokshaCardId));
+  for (const { ev, label } of dueReminders(EventStore.ofFestival('Moksha'), Date.now(), Notify.seen)) {
+    Notify.markSeen(ev.id);
+    Notify.moksha(ev, label);
+  }
 }, 30000);
 $('#linkupBannerEnd').onclick = () => endSession('You ended the hangout.');
 $('#linkupBannerChat').onclick = () => { openChat(S.session.withId); go('messages'); };
@@ -631,6 +637,8 @@ function setGhost(v) {
 }
 $('#ghostToggle').onchange = (e) => setGhost(e.target.checked);
 $('#ghostToggle2').onchange = (e) => setGhost(e.target.checked);
+$('#ntLinkup').onchange = (e) => { const p = Notify.prefs; p.linkup = e.target.checked; Notify.setPrefs(p); if (p.linkup) Notify.ensure(); };
+$('#ntMoksha').onchange = (e) => { const p = Notify.prefs; p.moksha = e.target.checked; Notify.setPrefs(p); if (p.moksha) Notify.ensure(); };
 $('#ghostToggleTop').onclick = () => setGhost(!S.ghost);
 
 /* ---------- Places ---------- */
@@ -911,6 +919,8 @@ function openProfile() {
   $('#statEvents').textContent = S.rsvp.length;
   $('#profileNameIn').value = myName();
   $('#profileDeptIn').value = S.profile.dept || '';
+  $('#ntLinkup').checked = Notify.prefs.linkup;
+  $('#ntMoksha').checked = Notify.prefs.moksha;
   $('#profileNote').textContent = Net.live ? 'Name change rejoins the live server (page reloads).' : '';
   applyProfileToUI();
   $('#profileModal').hidden = false;

@@ -370,6 +370,8 @@
       </div>
       <small class="muted" id="profileNote"></small>
       <label class="switch row">👻 Ghost Mode <input type="checkbox" id="ghostToggle2" /><span></span></label>
+      <label class="switch row" style="font-size:12px">⚡ Link Up request alerts <input type="checkbox" id="ntLinkup" /><span></span></label>
+      <label class="switch row" style="font-size:12px">🎭 Moksha starting-soon reminders <input type="checkbox" id="ntMoksha" /><span></span></label>
       <div class="stat-row"><div><strong id="statFriends">8</strong><small>friends</small></div><div><strong id="statPlaces">3</strong><small>places</small></div><div><strong id="statEvents">2</strong><small>going</small></div></div>
       <button class="btn-primary big" id="profileLinkUp">Link Up with someone ⚡</button>
     </div>
@@ -391,7 +393,7 @@
 <script type="importmap">{"imports":{"three":"./js/vendor/three.module.js"}}</script>
 <script type="module" src="./js/app.js"></script>
 <script>
-if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(()=>{})); }
+if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(()=>{})); navigator.serviceWorker.addEventListener('message', (e) => { if (e.data && e.data.linkup === 'go' && e.data.view) location.hash = '#/' + e.data.view; }); }
 window.addEventListener('load', () => setTimeout(() => document.getElementById('splash')?.classList.add('hide'), 900));
 document.getElementById('brandHome')?.addEventListener('click', () => location.hash = '#/map');
 </script>
