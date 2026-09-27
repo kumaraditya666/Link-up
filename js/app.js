@@ -237,7 +237,15 @@ $('#dayBtn').onclick = (e) => {
   e.currentTarget.textContent = m === 'day' ? '☀️' : m === 'evening' ? '🌇' : '🌙';
   toast(m === 'day' ? '☀️ Day mode' : m === 'evening' ? '🌇 Evening mode' : '🌙 Night mode — windows lit');
 };
-$('#locateBtn').onclick = () => { map.locate(); toast('Centred on you · NSUT Dwarka 📍'); };
+$('#locateBtn').onclick = async () => {
+  if (!S.gpsPref && !S.ghost) await setGPS(true);
+  map.locate();
+  if (Geo.watching && Geo.last) {
+    toast(Geo.last.offCampus ? '📍 You look off-campus — dot parked at the edge' : `📍 Live fix ±${Geo.last.accuracy}m — this is really you`);
+  } else {
+    toast('📍 Pinned default spot — enable GPS in Profile to track yourself');
+  }
+};
 $('#tiltBtn').onclick = (e) => {
   const v = map.toggleTilt();
   e.currentTarget.classList.toggle('active', v > 0.75);

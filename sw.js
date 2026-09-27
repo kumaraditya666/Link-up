@@ -1,5 +1,5 @@
 /* Link Up v1.3 — app shell */
-const CACHE = 'linkup-v24';
+const CACHE = 'linkup-v25';
 const CORE = ['./', './index.html', './manifest.webmanifest', './favicon.svg', './css/app.css', './js/app.js', './js/data.js', './js/map.js', './js/events.js', './js/net.js', './js/route.js', './js/notify.js', './js/social.js', './js/geo.js', './js/load-glb.js', './icons/icon-192.png', './icons/icon-512.png', './icons/maskable-512.png'];
 const CORE = ['./', './index.html', './manifest.webmanifest', './favicon.svg', './css/app.css', './js/app.js', './js/data.js', './js/map.js', './js/events.js', './js/net.js', './js/route.js', './js/notify.js', './js/social.js', './js/load-glb.js', './icons/icon-192.png', './icons/icon-512.png', './icons/maskable-512.png'];
 const VENDOR = ['./js/vendor/three.module.js'];
