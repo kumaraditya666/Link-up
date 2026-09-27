@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Link Up — NSUT</title>
+<meta name="description" content="Link Up — NSUT, but connected. Your campus. Your people. Your map. See friends, discover places, chat, meet up and explore NSUT live." />
+<meta name="theme-color" content="#070b16" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Link Up" />
+<link rel="manifest" href="./manifest.webmanifest" />
+<link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+<link rel="apple-touch-icon" href="./icons/icon-192.png" />
+<style>
+/* Critical splash styles (full app CSS in css/app.css) */
+#splash{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:radial-gradient(1200px 600px at 50% -10%,#1b2350 0%,#070b16 60%),#070b16;color:#fff;transition:opacity .5s ease,visibility .5s}
+#splash.hide{opacity:0;visibility:hidden}
+.splash-mark{width:84px;height:84px}
+.splash-word{font:800 30px/1 system-ui;letter-spacing:6px}
+.splash-word span{background:linear-gradient(90deg,#a78bfa,#22d3ee,#a3e635);-webkit-background-clip:text;background-clip:text;color:transparent}
+.splash-tag{opacity:.7;font:500 13px system-ui;letter-spacing:1px}
+.splash-bar{width:180px;height:4px;border-radius:99px;background:#ffffff1f;overflow:hidden}
+.splash-bar i{display:block;height:100%;width:40%;border-radius:99px;background:linear-gradient(90deg,#7c3aed,#06b6d4);animation:load 1.1s infinite ease-in-out}
+@keyframes load{0%{transform:translateX(-100%)}100%{transform:translateX(450%)}}
+</style>
+<link rel="stylesheet" href="./css/app.css" />
+</head>
+<body>
+<div id="splash" aria-hidden="true">
+  <svg class="splash-mark" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+    <rect x="2" y="2" width="60" height="60" rx="18" fill="url(#sg)"/>
+    <circle cx="22" cy="32" r="8" fill="#fff"/>
+    <circle cx="42" cy="32" r="8" fill="#fff" opacity=".55"/>
+    <path d="M28 32h8" stroke="#070b16" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="22" cy="32" r="3" fill="#7c3aed"/>
+    <circle cx="42" cy="32" r="3" fill="#06b6d4"/>
+    <defs><linearGradient id="sg" x1="0" y1="0" x2="64" y2="64"><stop stop-color="#7c3aed"/><stop offset="1" stop-color="#06b6d4"/></linearGradient></defs>
+  </svg>
+  <div class="splash-word">LINK <span>UP</span></div>
+  <div class="splash-tag">NSUT, but connected.</div>
+  <div class="splash-bar"><i></i></div>
+</div>
+
+<div id="app">
+  <!-- ===== Top bar ===== -->
+  <header id="topbar">
+    <div class="brand" id="brandHome" role="button" tabindex="0" aria-label="Link Up home">
+      <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true">
+        <rect x="2" y="2" width="60" height="60" rx="18" fill="url(#bg1)"/>
+        <circle cx="22" cy="32" r="8" fill="#fff"/>
+        <circle cx="42" cy="32" r="8" fill="#fff" opacity=".55"/>
+        <path d="M28 32h8" stroke="#070b16" stroke-width="4" stroke-linecap="round"/>
+        <circle cx="22" cy="32" r="3" fill="#7c3aed"/>
+        <circle cx="42" cy="32" r="3" fill="#06b6d4"/>
+        <defs><linearGradient id="bg1" x1="0" y1="0" x2="64" y2="64"><stop stop-color="#7c3aed"/><stop offset="1" stop-color="#06b6d4"/></linearGradient></defs>
+      </svg>
+      <div class="brand-text">
+        <strong>LINK UP</strong>
+        <small>NSUT, but connected.</small>
+      </div>
+      <span class="live-dot" id="liveDot" title="Live"><i></i>LIVE</span>
+    </div>
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 4a7 7 0 1 0 4.9 12l3 3 1.4-1.4-3-3A7 7 0 0 0 11 4Zm0 2a5 5 0 1 1 0 10 5 5 0 0 1 0-10Z"/></svg>
+      <input id="globalSearch" type="search" placeholder="Search friends, places, events…  ( / )" autocomplete="off" aria-label="Search friends, places, events" />
+      <kbd>/</kbd>
+    </div>
+    <div class="top-actions">
+      <button id="ghostToggleTop" class="ghost-pill" aria-pressed="false" title="Toggle Ghost Mode">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3C7 3 4 7 4 11v7l2.5-2H18l2 2v-7c0-4-3-8-8-8Zm0 2c3.7 0 6 3 6 6v4h-3l-1.5 1.5h-4L8 15H6v-4c0-3 2.3-6 6-6Z"/></svg>
+        <span>Ghost</span><em id="ghostStateTop">Off</em>
+      </button>
+      <button id="installBtn" class="icon-btn" hidden title="Install Link Up">⬇</button>
+      <button id="profileBtn" class="avatar-btn" title="Your profile">A</button>
+    </div>
+  </header>
+
+  <!-- ===== Side nav (desktop) ===== -->
+  <aside id="sidenav" aria-label="Primary">
+    <nav>
+      <button data-view="map" class="active"><span class="ic">◉</span>Map</button>
+      <button data-view="friends"><span class="ic">◍</span>Friends</button>
+      <button data-view="nearby"><span class="ic">◎</span>Nearby</button>
+      <button data-view="places"><span class="ic">⬢</span>Places</button>
+      <button data-view="explore"><span class="ic">✦</span>Explore</button>
+      <button data-view="events"><span class="ic">✧</span>Events</button>
+      <button data-view="messages"><span class="ic">✉</span>Messages<em class="badge" id="msgBadgeSide" hidden></em></button>
+    </nav>
+    <div class="side-card">
+      <strong>Your campus. Your people. Your map.</strong>
+      <p id="sideStats">8 friends live · 5 busy spots</p>
+      <button id="sideLinkUp" class="btn-primary">Link Up ⚡</button>
+    </div>
+    <div class="side-foot">Link Up — NSUT · v1.0</div>
+  </aside>
+
+  <!-- ===== Main ===== -->
+  <main id="main">
+    <!-- MAP VIEW -->
+    <section id="view-map" class="view active" aria-label="Campus map">
+      <div id="mapStage">
+        <canvas id="campusMap" aria-label="Interactive 3D campus map of NSUT"></canvas>
+        <div id="mapVignette"></div>
+        <div id="mapChips" role="tablist" aria-label="Map layers">
+          <button class="chip active" data-layer="friends">Friends</button>
+          <button class="chip" data-layer="places">Places</button>
+          <button class="chip" data-layer="events">Events</button>
+          <button class="chip mok" id="mokshaChip" title="Moksha live layer">🎭 Moksha <i id="mokshaLiveDot" hidden></i></button>
+          <button class="chip" data-layer="food">Food</button>
+          <button class="chip tilt" id="tiltBtn" title="Toggle 3D tilt">3D</button>
+        </div>
+        <div id="eventSub" hidden>
+          <button data-es="all" class="active">All events</button>
+          <button data-es="moksha">🎭 Moksha only</button>
+        </div>
+        <div id="mapControls">
+          <button id="zoomIn" aria-label="Zoom in">+</button>
+          <button id="zoomOut" aria-label="Zoom out">−</button>
+          <button id="rotLeft" aria-label="Rotate left">⟲</button>
+          <button id="rotRight" aria-label="Rotate right">⟳</button>
+          <button id="dayBtn" aria-label="Change time of day">🌇</button>
+          <button id="locateBtn" aria-label="Centre on me">◎</button>
+        </div>
+        <div id="mokshaHome" hidden>
+          <div class="mk-emoji">🎭</div>
+          <div class="mk-t"><strong>MOKSHA</strong><small id="mokshaHomeSub">NSUT Cultural Festival</small><span id="mokshaHomeMeta">Starts soon · 📍 Venue</span></div>
+          <button id="mokshaHomeGo">View on Map</button>
+          <button id="mokshaHomeX" aria-label="Dismiss">✕</button>
+        </div>
+        <div id="dirBar" hidden>
+          <div><strong>📍 You → 🎭 <span id="dirDest">Moksha</span></strong><small id="dirMeta">— · — · Approximate route</small></div>
+          <button id="dirClose" aria-label="Clear route">✕</button>
+        </div>
+        <div id="linkupBanner" hidden>
+          <div class="lu-pulse">🤝</div>
+          <div><strong id="linkupBannerTitle">LINKED UP</strong><small id="linkupBannerSub">Near SAC · 42:10 left</small></div>
+          <div class="lu-actions"><button id="linkupBannerChat">Chat</button><button id="linkupBannerEnd">End</button></div>
+        </div>
+        <div id="mapSheet">
+          <div class="sheet-grip"></div>
+          <div class="sheet-head">
+            <div><strong id="sheetTitle">Around you</strong><small id="sheetSub">NSUT Dwarka · live</small></div>
+            <button class="btn-primary sm" id="sheetLinkUp">Link Up ⚡</button>
+          </div>
+          <div id="sheetCards" class="h-scroll"></div>
+        </div>
+        <div id="mapTip" hidden></div>
+      </div>
+    </section>
+
+    <!-- FRIENDS -->
+    <section id="view-friends" class="view" aria-label="Friends">
+      <div class="page-head"><div><h1>Friends</h1><p>Your friend network at NSUT.</p></div>
+        <div class="seg"><button data-f="all" class="active">All</button><button data-f="online">Online</button><button data-f="linked">Linked</button></div>
+      </div>
+      <div id="incomingWrap" hidden>
+        <h2>Requests <span id="incomingCount"></span></h2>
+        <div id="incomingList"></div>
+      </div>
+      <div id="friendsGrid" class="cards"></div>
+    </section>
+
+    <!-- NEARBY -->
+    <section id="view-nearby" class="view" aria-label="Nearby">
+      <div class="page-head"><div><h1>Nearby</h1><p>Friends within walking distance, live.</p></div>
+        <label class="switch">Ghost Mode <input type="checkbox" id="ghostToggle" /><span></span></label>
+      </div>
+      <div id="ghostNote" class="notice" hidden>👻 Ghost Mode is on — you're hidden from Nearby and the map. Friends can't link up with you until you go visible.</div>
+      <div id="radar" aria-hidden="true"><div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div><div id="radarDots"></div><div class="you">YOU</div></div>
+      <div id="nearbyList" class="cards"></div>
+    </section>
+
+    <!-- PLACES -->
+    <section id="view-places" class="view" aria-label="Places">
+      <div class="page-head"><div><h1>Places</h1><p>Visited campus locations, rated by students.</p></div>
+        <div class="seg" id="placeSeg"><button data-p="all" class="active">All</button><button data-p="food">Food</button><button data-p="study">Study</button><button data-p="hangout">Hangout</button><button data-p="visited">Visited</button></div>
+      </div>
+      <div id="placesGrid" class="cards"></div>
+    </section>
+
+    <!-- EXPLORE -->
+    <section id="view-explore" class="view" aria-label="Explore">
+      <div class="page-head"><div><h1>Explore</h1><p>NSUT exploration — trails, quests and hidden gems.</p></div></div>
+      <div class="hero-card">
+        <div><small>FEATURED TRAIL</small><h2>First-Year Survival Trail 🗺️</h2><p>7 stops · 1.2 km · 45 min — SAC → Canteen → Library → Amphitheatre. Finish all stops to earn the Fresher badge.</p>
+        <button class="btn-primary sm" id="startTrail">Start trail</button></div>
+        <div class="hero-art" aria-hidden="true">🛸</div>
+      </div>
+      <div id="exploreGrid" class="cards"></div>
+    </section>
+
+    <!-- EVENTS -->
+    <section id="view-events" class="view" aria-label="Events">
+      <div class="page-head"><div><h1>Events</h1><p>What's happening around you on campus.</p></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><div class="seg" id="eventSeg"><button data-e="all" class="active">All</button><button data-e="today">Today</button><button data-e="rsvp">Going</button><button data-e="moksha">🎭 Moksha</button></div>
+        <button class="mini-btn" id="adminBtn" title="Organizer tools">⚙ Manage</button></div>
+      </div>
+      <div id="mokshaStrip"></div>
+      <div id="eventsList" class="cards"></div>
+    </section>
+
+    <!-- MESSAGES -->
+    <section id="view-messages" class="view" aria-label="Messages">
+      <div class="msg-layout">
+        <div class="threads"><div class="page-head"><div><h1>Messages</h1><p>Chats with your people.</p></div></div><div id="threadList"></div></div>
+        <div class="chat" id="chatPane">
+          <div class="chat-empty" id="chatEmpty"><div class="big">💬</div><strong>Pick a chat to start talking</strong><p>Or hit Link Up on a friend to meet IRL.</p></div>
+          <div class="chat-active" id="chatActive" hidden>
+            <div class="chat-head"><button id="chatBack">←</button><div class="chat-id"><span id="chatAvatar" class="avatar">A</span><div><strong id="chatName">—</strong><small id="chatStatus">—</small></div></div><button id="chatLinkUp" class="btn-primary sm">Link Up ⚡</button></div>
+            <div id="chatBubbles"></div>
+            <div class="quick" id="quickReplies"></div>
+            <form id="chatForm"><input id="chatInput" placeholder="Message…" autocomplete="off" /><button>➤</button></form>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===== Bottom nav (mobile) ===== -->
+  <nav id="bottomnav" aria-label="Primary mobile">
+    <button data-view="map" class="active"><span>◉</span><small>Map</small></button>
+    <button data-view="friends"><span>◍</span><small>Friends</small></button>
+    <button data-view="nearby"><span>◎</span><small>Nearby</small></button>
+    <button data-view="places"><span>⬢</span><small>Places</small></button>
+    <button data-view="messages"><span>✉</span><small>Chats</small><em class="badge" id="msgBadge" hidden></em></button>
+    <button data-view="more"><span>☰</span><small>More</small></button>
+  </nav>
+
+  <!-- More sheet -->
+  <div id="moreSheet" class="modal" hidden><div class="sheet-modal">
+    <button data-view="explore">✦ Explore</button>
+    <button data-view="events">✧ Events</button>
+    <button id="moreProfile">◉ Profile & Ghost Mode</button>
+    <button id="moreClose">Close</button>
+  </div></div>
+
+  <!-- ===== Link Up modal (send) ===== -->
+  <div id="linkupModal" class="modal" hidden role="dialog" aria-modal="true" aria-label="Link Up">
+    <div class="modal-card">
+      <div class="modal-glow"></div>
+      <button class="x" data-close="linkupModal">✕</button>
+      <div class="lu-mark">⚡</div>
+      <h2>LINK UP</h2>
+      <p id="linkupWho">Link up with Ananya?</p>
+      <div class="spot-row"><span>Meet spot</span><div class="seg wrap" id="spotPick"></div></div>
+      <div class="spot-row"><span>Keep it live for</span><div class="seg wrap" id="durPick">
+        <button data-d="30" class="active">30 min</button><button data-d="60">1 hour</button><button data-d="120">2 hours</button><button data-d="0">Until ended</button>
+      </div></div>
+      <button class="btn-primary big" id="sendLinkUp">Send Link Up ⚡</button>
+      <small class="muted">They'll get “Aditya wants to link up.” · expires in 2 min</small>
+    </div>
+  </div>
+
+  <!-- ===== Incoming request modal ===== -->
+  <div id="incomingModal" class="modal" hidden role="dialog" aria-modal="true" aria-label="Link Up request">
+    <div class="modal-card">
+      <div class="modal-glow"></div>
+      <span class="avatar lg" id="incAvatar">K</span>
+      <h2 id="incTitle">Kabir wants to link up.</h2>
+      <p class="muted" id="incSub">Near Amphitheatre · 120 m away</p>
+      <div class="row2"><button class="btn-decline" id="incDecline">Decline</button><button class="btn-primary big" id="incAccept">Accept 🤝</button></div>
+      <div class="seg wrap" id="incDur"><button data-d="30" class="active">30 min</button><button data-d="60">1 hour</button><button data-d="120">2 hours</button><button data-d="0">Until ended</button></div>
+    </div>
+  </div>
+
+  <!-- ===== Linked up modal ===== -->
+  <div id="linkedModal" class="modal" hidden role="dialog" aria-modal="true" aria-label="Linked up">
+    <div class="modal-card center">
+      <div class="modal-glow"></div>
+      <div class="big">🤝</div>
+      <h2>LINKED UP</h2>
+      <p id="linkedSub">Near SAC</p>
+      <div class="linked-timer" id="linkedTimer">30:00</div>
+      <div class="row2"><button class="btn-decline" id="linkedEnd">End</button><button class="btn-primary big" id="linkedChat">Open chat</button></div>
+    </div>
+  </div>
+
+  <!-- ===== Moksha event card ===== -->
+  <div id="mokshaCard" class="modal" hidden role="dialog" aria-modal="true" aria-label="Moksha event">
+    <div class="modal-card wide">
+      <div class="modal-glow gold"></div>
+      <button class="x" data-close="mokshaCard">✕</button>
+      <div class="mk-head"><div class="mk-emoji big">🎭</div>
+        <div><div class="mk-kicker">NSUT ANNUAL CULTURAL FESTIVAL</div><h2 style="letter-spacing:2px;margin:2px 0">MOKSHA</h2>
+        <span class="pill" id="mokshaStatus">🟢 LIVE NOW</span></div>
+      </div>
+      <div class="mk-rows">
+        <div>📍 <strong id="mokshaVenue">Amphitheatre</strong></div>
+        <div>📅 <span id="mokshaDate">—</span></div>
+        <div>⏰ <span id="mokshaTime">—</span></div>
+      </div>
+      <p class="muted" id="mokshaDesc"></p>
+      <div class="crowd-row" id="mokshaCrowd" hidden>👥 Activity: <strong id="mokshaCrowdV"></strong></div>
+      <div class="btn-grid">
+        <button class="btn-primary" id="mokshaView">View Events</button>
+        <button class="mini-btn big-btn" id="mokshaDir">Directions</button>
+        <button class="mini-btn big-btn" id="mokshaShare">Share</button>
+        <button class="mini-btn big-btn" id="mokshaInterest">☆ I'm Interested</button>
+      </div>
+      <small class="muted" id="mokshaCount"></small>
+    </div>
+  </div>
+
+  <!-- ===== Moksha hub ===== -->
+  <div id="mokshaHub" class="modal" hidden role="dialog" aria-modal="true" aria-label="Moksha hub">
+    <div class="modal-card wide">
+      <div class="modal-glow gold"></div>
+      <button class="x" data-close="mokshaHub">✕</button>
+      <div class="mk-kicker">🎭 MOKSHA · EVENT HUB</div>
+      <h2 style="letter-spacing:2px">WHAT'S ON</h2>
+      <div class="seg wrap" id="mokshaCats"></div>
+      <div id="mokshaList"></div>
+    </div>
+  </div>
+
+  <!-- ===== Admin / organizer ===== -->
+  <div id="adminModal" class="modal" hidden role="dialog" aria-modal="true" aria-label="Organizer tools">
+    <div class="modal-card wide"><button class="x" data-close="adminModal">✕</button>
+      <div id="adminGate">
+        <h2 style="letter-spacing:2px">ORGANIZER ACCESS</h2>
+        <p class="muted">Official campus events can only be published by authorized organizers. Enter the organizer code. <small>(Demo code: <code>moksha27</code>)</small></p>
+        <form id="adminForm0" style="display:flex;gap:8px"><input id="adminCode" placeholder="Organizer code" autocomplete="off" style="flex:1;background:#ffffff0c;border:1px solid var(--line);border-radius:12px;padding:11px 13px;color:#fff;outline:0" /><button class="btn-primary sm">Unlock</button></form>
+      </div>
+      <div id="adminPanel" hidden>
+        <div class="row" style="display:flex;gap:8px;align-items:center"><h2 style="letter-spacing:2px;margin:0">MOKSHA EVENTS</h2><span style="flex:1"></span><button class="mini-btn" id="adminLogout">Lock</button></div>
+        <p class="muted">Venues publish to the 3D map <strong>only</strong> when verified with coordinates. Unverified stays “Venue TBA”.</p>
+        <div id="adminList"></div>
+        <h3 style="margin:14px 0 6px">New / edit event</h3>
+        <form id="adminForm" class="admin-grid">
+          <input id="adId" type="hidden" />
+          <input id="adName" placeholder="Event name *" required />
+          <select id="adCat"></select>
+          <select id="adVenue"><option value="">Venue TBA (unverified)</option></select>
+          <input id="adStart" type="datetime-local" required />
+          <input id="adEnd" type="datetime-local" required />
+          <textarea id="adDesc" placeholder="Description" rows="2"></textarea>
+          <select id="adCrowd" title="Show ONLY with reliable realtime data">
+            <option value="">Crowd: no reliable data (hidden)</option>
+            <option value="low">Crowd: 🟢 Low activity (verified feed)</option>
+            <option value="moderate">Crowd: 🟡 Moderate activity (verified feed)</option>
+            <option value="high">Crowd: 🔴 High activity (verified feed)</option>
+          </select>
+          <label class="switch row" style="font-size:12px">Verified venue coords <input type="checkbox" id="adVer" checked /><span></span></label>
+          <label class="switch row" style="font-size:12px">Published <input type="checkbox" id="adPub" checked /><span></span></label>
+          <div class="row2"><button type="button" class="btn-decline" id="adReset">Clear</button><button class="btn-primary big" type="submit">Save event</button></div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Place detail ===== -->
+  <div id="placeModal" class="modal" hidden role="dialog" aria-modal="true" aria-label="Place details">
+    <div class="modal-card wide"><button class="x" data-close="placeModal">✕</button><div id="placeBody"></div></div>
+  </div>
+
+  <!-- ===== Profile ===== -->
+  <div id="profileModal" class="modal" hidden role="dialog" aria-modal="true" aria-label="Profile">
+    <div class="modal-card"><button class="x" data-close="profileModal">✕</button>
+      <span class="avatar lg me">A</span>
+      <h2>Aditya · CSE '27</h2><p class="muted">NSUT Dwarka · linkup.nsu · “Your campus. Your people. Your map.”</p>
+      <label class="switch row">👻 Ghost Mode <input type="checkbox" id="ghostToggle2" /><span></span></label>
+      <div class="stat-row"><div><strong id="statFriends">8</strong><small>friends</small></div><div><strong id="statPlaces">3</strong><small>places</small></div><div><strong id="statEvents">2</strong><small>going</small></div></div>
+      <button class="btn-primary big" id="profileLinkUp">Link Up with someone ⚡</button>
+    </div>
+  </div>
+
+  <div id="searchResults" hidden></div>
+  <div id="toasts" aria-live="polite"></div>
+</div>
+
+<script type="module" src="./js/app.js"></script>
+<script>
+if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(()=>{})); }
+window.addEventListener('load', () => setTimeout(() => document.getElementById('splash')?.classList.add('hide'), 900));
+document.getElementById('brandHome')?.addEventListener('click', () => location.hash = '#/map');
+</script>
+</body>
+</html>
