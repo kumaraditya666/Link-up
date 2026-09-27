@@ -58,8 +58,10 @@ export const Net = {
   get live() { return this.mode === 'live'; },
 
   bases() {
-    const b = ['http://localhost:8001', 'http://127.0.0.1:8001'];
-    if (location.hostname && !['localhost', '127.0.0.1'].includes(location.hostname)) b.unshift(`http://${location.hostname}:8001`);
+    const b = [];
+    try { const ov = localStorage.getItem('linkup.api.base'); if (ov) b.push(ov.replace(/\/$/, '')); } catch {}
+    b.push('http://localhost:8001', 'http://127.0.0.1:8001');
+    if (location.hostname && !['localhost', '127.0.0.1'].includes(location.hostname)) b.push(`http://${location.hostname}:8001`);
     return b;
   },
   async init(identity) {

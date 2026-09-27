@@ -1347,6 +1347,7 @@ function openProfile() {
   syncGpsToggle();
   $('#profileNote').textContent = Net.live ? 'Name change rejoins the live server (page reloads).' : '';
   $('#storageInfo').textContent = `Local data: ~${storageKB()} KB on this device`;
+  try { $('#apiBaseIn').value = localStorage.getItem('linkup.api.base') || ''; } catch {}
   const earned = Social.earnedBadges(TRAILS, S.visited, Social.linkupCount());
   $('#badgeShelf').innerHTML = Social.BADGES.map((b) => `<span class="tag" style="${earned.includes(b.id) ? 'color:var(--lime);border-color:#b7ff2a55' : 'opacity:.45'}" title="${b.desc}">${earned.includes(b.id) ? b.name : '🔒 ' + b.name.split(' ')[0]}</span>`).join('');
   $('#blockedWrap').hidden = true;
@@ -1374,6 +1375,11 @@ $('#profileSave').onclick = () => {
   const name = ($('#profileNameIn').value.trim() || 'Aditya').slice(0, 24);
   const dept = $('#profileDeptIn').value.trim().slice(0, 16) || "CSE '27";
   const bio = $('#profileBioIn').value.trim().slice(0, 80);
+  try {
+    const ab = $('#apiBaseIn').value.trim().replace(/\/$/, '');
+    if (ab) localStorage.setItem('linkup.api.base', ab);
+    else localStorage.removeItem('linkup.api.base');
+  } catch {}
   const changed = name !== S.profile.name;
   S.profile = { name, dept, bio };
   persist(); applyProfileToUI();
