@@ -337,6 +337,19 @@ function showDirections(ev) {
   toast(`📍 You → 🎭 ${ev.venue_name} · ~${r.mins} min walk`);
 }
 $('#dirClose').onclick = () => { map.setRoute(null); $('#dirBar').hidden = true; };
+function navigateToPlace(pid) {
+  const b = BUILDINGS.find((x) => x.id === pid);
+  if (!b) return;
+  let r = null;
+  try { r = route([map.mePos.x, map.mePos.y], [b.x, b.y]); } catch {}
+  if (!r) { toast('No route found 🗺️'); return; }
+  map.setRoute({ pts: r.pts, to: { x: b.x, y: b.y } });
+  $('#dirDest').textContent = b.label;
+  $('#dirMeta').textContent = `≈${r.meters} m · ~${r.mins} min walk · ${r.approximate ? 'Approximate route' : 'via campus roads'}`;
+  $('#dirSteps').innerHTML = r.steps.map((s, i) => `<li><strong>${i + 1}.</strong> ${s.text}${s.meters ? ` <span>· ${s.meters} m</span>` : ''}</li>`).join('');
+  $('#dirBar').hidden = false;
+  go('map');
+}
 
 /* ----- home / upcoming card ----- */
 function refreshMokshaHome() {
@@ -729,16 +742,23 @@ function renderExplore() {
   const lb = Social.leaderboard([...FRIENDS, ...livePeople()], S.visited.length);
   const moments = Social.moments();
   const ago = (t) => { const h = Math.floor((Date.now() - t) / 36e5); return h < 1 ? 'just now' : h + 'h ago'; };
+  const pname = (id) => PLACES.find((p) => p.id === id)?.name || (BUILDINGS.find((b) => b.id === id)?.label) || id;
   $('#exploreGrid').innerHTML = `
     <div class="card" style="grid-column:1/-1"><h3>⚡ Moments <small class="muted">· expire in 24h</small></h3>
       <form id="momentForm" style="display:flex;gap:8px;margin:8px 0"><input id="momentIn" maxlength="140" placeholder="What's the vibe on campus?" autocomplete="off" style="flex:1;background:#ffffff0c;border:1px solid var(--line);border-radius:12px;padding:10px 12px;color:#fff;outline:0" /><button class="btn-primary sm">Post</button></form>
       <div>${moments.slice(0, 5).map((m) => `<div class="moment"><strong>${m.author}</strong> <span class="tag">${(PLACES.find((p) => p.id === m.placeId)?.short) || 'NSUT'}</span><p>${m.text}</p><small class="muted">${ago(m.t)}</small></div>`).join('') || '<p class="muted">No moments yet — post the first one 👆</p>'}</div></div>
     <div class="card"><h3>🏆 Campus leaderboard</h3>
       ${lb.slice(0, 5).map((r, i) => `<div class="row" style="gap:8px;margin-top:6px"><strong>${['🥇', '🥈', '🥉', '4.', '5.'][i]}</strong><span style="flex:1">${r.name}${r.me ? ' (you)' : ''} <small class="muted">· ${r.detail}</small></span><strong style="color:var(--lime)">${r.score}</strong></div>`).join(''}</div>
-  ` + TRAILS.map((t) => `<div class="card"><div class="row"><div style="flex:1"><h3>${t.title}</h3><small>${t.meta}</small></div><strong style="color:var(--lime)">${t.pct}%</strong></div>
+  ` + TRAILS.map((t) => {
+    const pr = Social.trailProgress(t, S.visited);
+    const stops = (t.stops || []).map((s) => `<div class="row" style="gap:6px;margin-top:4px;font-size:13px"><span>${S.visited.includes(s) ? '✅' : '◻️'}</span><span style="flex:1">${pname(s)}</span>${!S.visited.includes(s) && pr.next === s ? `<button class="mini-btn go" data-route="${s}">Route →</button>` : ''}</div>`).join('');
+    return `<div class="card"><div class="row"><div style="flex:1"><h3>${t.title}</h3><small>${t.meta}</small></div><strong style="color:var(--lime)">${pr.pct}%</strong></div>
     <p class="muted">${t.desc}</p>
-    <div style="height:8px;border-radius:99px;background:#ffffff14;overflow:hidden"><i style="display:block;height:100%;width:${t.pct}%;background:var(--grad)"></i></div>
-    <button class="mini-btn go" style="margin-top:10px" data-trail="${t.title}">Continue →</button></div>`).join('');
+    <div style="height:8px;border-radius:99px;background:#ffffff14;overflow:hidden"><i style="display:block;height:100%;width:${pr.pct}%;background:var(--grad)"></i></div>
+    ${stops}
+    ${pr.complete ? `<p style="color:var(--lime);font-weight:800;margin:8px 0 0">Badge earned: ${t.badge} 🎉</p>` : `<p class="muted" style="margin:8px 0 0">Badge: ${t.badge} · check in at places to progress</p>`}</div>`;
+  }).join('');
+  $$('#exploreGrid [data-route]').forEach((b) => (b.onclick = () => navigateToPlace(b.dataset.route)));
   $$('[data-trail]').forEach((b) => (b.onclick = () => toast(`Trail started: ${b.dataset.trail} 🗺️ — check in at each stop!`)));
   $('#momentForm').onsubmit = (e) => {
     e.preventDefault();
@@ -983,6 +1003,9 @@ function openProfile() {
   $('#ntLinkup').checked = Notify.prefs.linkup;
   $('#ntMoksha').checked = Notify.prefs.moksha;
   $('#profileNote').textContent = Net.live ? 'Name change rejoins the live server (page reloads).' : '';
+  const earned = Social.earnedBadges(TRAILS, S.visited, Social.linkupCount());
+  $('#badgeShelf').innerHTML = Social.BADGES.map((b) => `<span class="tag" style="${earned.includes(b.id) ? 'color:var(--lime);border-color:#a3e63555' : 'opacity:.45'}" title="${b.desc}">${earned.includes(b.id) ? b.name : '🔒 ' + b.name.split(' ')[0]}</span>`).join('');
+  applyProfileToUI();
   applyProfileToUI();
   $('#profileModal').hidden = false;
 }

@@ -61,6 +61,26 @@ export const Social = {
   },
   recordLinkup() { store.set('linkups', (store.get('linkups', 0) + 1)); },
   linkupCount() { return store.get('linkups', 0); },
+  trailProgress(trail, visited) {
+    const stops = trail.stops || [];
+    const done = stops.filter((s) => visited.includes(s));
+    return { done: done.length, total: stops.length, pct: stops.length ? Math.round((done.length / stops.length) * 100) : 0, next: stops.find((s) => !visited.includes(s)) || null, complete: stops.length > 0 && done.length === stops.length };
+  },
+  BADGES: [
+    { id: 't1', name: 'Foodie 🍛', desc: 'Finish the Food Hunt' },
+    { id: 't2', name: 'Golden Hour 🌅', desc: 'Finish Sunset Points' },
+    { id: 't3', name: 'Deep Work 📖', desc: 'Finish the Focus Trail' },
+    { id: 't4', name: 'Pathfinder 🧭', desc: 'Finish Hidden NSUT' },
+    { id: 'explorer', name: 'Explorer 🗺️', desc: 'Visit 5+ places' },
+    { id: 'socialite', name: 'Socialite 🤝', desc: 'Link up 3+ times' },
+  ],
+  earnedBadges(trails, visited, linkups) {
+    const out = [];
+    for (const t of trails) if (this.trailProgress(t, visited).complete) out.push(t.id);
+    if (visited.length >= 5) out.push('explorer');
+    if (linkups >= 3) out.push('socialite');
+    return out;
+  },
   leaderboard(friends, visitedCount) {
     const rows = friends.map((f, i) => ({
       name: f.name.split(' ')[0], score: (f.online ? 3 : 0) + ((f.dist < 200 ? 2 : 0)) + ((i * 7) % 4),

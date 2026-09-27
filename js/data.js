@@ -55,6 +55,9 @@ export const PLACES = [
   { id: 'apj', name: 'APJ Complex', short: 'APJ', cat: 'study', emoji: '💻', rating: 4.3, busy: 'Classes on', visited: false, desc: 'Lecture halls + labs with serious student-of-the-year vibes.', hours: '9 AM – 5 PM' },
   { id: 'sports', name: 'Sports Complex', short: 'Sports', cat: 'hangout', emoji: '🏟️', rating: 4.5, busy: 'Evenings', visited: false, desc: 'Running track, football field and courts on the far east side.', hours: '5 AM – 8 PM' },
   { id: 'flag', name: 'Flag Circle', short: 'Flag', cat: 'hangout', emoji: '🚩', rating: 4.6, busy: 'Sunset crowd', visited: false, desc: 'The flag roundabout by Main Gate road — default meetup point.', hours: 'Open all day' },
+  { id: 'safal', name: 'Safal Store', short: 'Safal', cat: 'food', emoji: '🥤', rating: 4.1, busy: 'Quick bites', visited: false, desc: 'Grab-and-go snacks next to APJ. The 4 PM saviour.', hours: '9 AM – 7 PM' },
+  { id: 'north-gate', name: 'North Gate', short: 'North Gate', cat: 'hangout', emoji: '🚪', rating: 4.0, busy: 'Mornings', visited: false, desc: 'Northwestern entry by Design Block and hostels.', hours: 'Open 6 AM – 10 PM' },
+  { id: 'main-gate', name: 'Main Gate', short: 'Main Gate', cat: 'hangout', emoji: '🏁', rating: 4.2, busy: 'Evenings', visited: false, desc: 'Southwestern main entry on Azad Hind Fauj Marg.', hours: 'Open 24x7' },
 ];
 
 export const EVENTS = [
@@ -66,10 +69,10 @@ export const EVENTS = [
 ];
 
 export const TRAILS = [
-  { id: 't1', title: 'Food Hunt 🍜', meta: '5 stops · 800 m', desc: 'Canteen → Safal → Amul booth. Rate each bite.', pct: 60 },
-  { id: 't2', title: 'Sunset Points 🌅', meta: '3 stops · 600 m', desc: 'Flag Circle → Moksha Ground → Sports track.', pct: 20 },
-  { id: 't3', title: 'Focus Trail 📖', meta: '4 stops · quiet', desc: 'Library → APJ labs → Smart Block nook.', pct: 0 },
-  { id: 't4', title: 'Hidden NSUT 👻', meta: '6 stops · secret', desc: 'Gates, old trees, the hostels’ back lane.', pct: 0 },
+  { id: 't1', title: 'Food Hunt 🍜', meta: '2 stops · canteen run', desc: 'Canteen → Safal. Check in at each bite.', stops: ['canteen', 'safal'], badge: 'Foodie 🍛' },
+  { id: 't2', title: 'Sunset Points 🌅', meta: '3 stops · golden hour', desc: 'Flag Circle → Moksha Ground → Sports track.', stops: ['flag', 'moksha-ground', 'sports'], badge: 'Golden Hour 🌅' },
+  { id: 't3', title: 'Focus Trail 📖', meta: '2 stops · quiet', desc: 'Library → APJ labs. Deep work mode.', stops: ['sac-lib', 'apj'], badge: 'Deep Work 📖' },
+  { id: 't4', title: 'Hidden NSUT 👻', meta: '3 stops · gates run', desc: 'North Gate → Flag → Main Gate. End to end.', stops: ['north-gate', 'flag', 'main-gate'], badge: 'Pathfinder 🧭' },
 ];
 
 export const THREADS = {
