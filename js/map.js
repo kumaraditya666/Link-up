@@ -198,7 +198,7 @@ export function createMap(canvas, opts = {}) {
   }
   {
     const P = MODES.day;
-    const terrainTex = groundTexture('#D8D2C4', ['#CFC9BA', '#DDD8CC', '#C4B99B', '#E4DED2'], 5, 32);
+    const terrainTex = groundTexture('#D3CCBC', ['#C4B99B', '#DDD8CC', '#A8B08A', '#B5B49A', '#9AA578', '#C9C2B0'], 5, 32);
     const lawnTex = groundTexture('#7cab5e', ['#6b9a4e', '#86b366', '#5f8f47', '#8fae62'], 9, 0.012);
     const outer = flat(5200, 5200, 0xffffff, -0.6);
     outer.material.map = terrainTex; outer.material.color.set(P.tintOut);
@@ -243,57 +243,153 @@ export function createMap(canvas, opts = {}) {
     if (hedge.instanceColor) hedge.instanceColor.needsUpdate = true;
     hedge.castShadow = true;
     scene.add(hedge);
-    // surrounding city: low-detail blocks + scrub trees so campus sits in a real place
+    // Dwarka, simplified: avenues + streets + blocks + parks + skyline.
+    // Campus geometry above is untouched; this is all outside the boundary.
     {
       const rng = mulberry(4242);
-      const spots = [];
-      let guard = 0;
-      while (spots.length < 130 && guard++ < 4000) {
-        const a = rng() * TAU, rr = 640 + rng() * 480;
-        const x = 470 + Math.cos(a) * rr, y = 345 + Math.sin(a) * rr * 0.8;
-        if (x < -600 || x > 1600 || y < -500 || y > 1200) continue;
-        if (inPoly(x, y)) continue;
-        let nearEdge = false;
-        for (let i = 0; i < BOUNDARY.length; i++) {
-          const [ax, ay] = BOUNDARY[i], [bx, by] = BOUNDARY[(i + 1) % BOUNDARY.length];
-          if (segDist2(x, y, ax, ay, bx, by) < 55) { nearEdge = true; break; }
+      const sideMat = new THREE.MeshStandardMaterial({ color: 0xcfc9bb, roughness: 1 });
+      const artMat = new THREE.MeshStandardMaterial({ color: 0x5f666f, roughness: 1 });
+      const stMat = new THREE.MeshStandardMaterial({ color: 0x6e747d, roughness: 1 });
+      const lineMat = new THREE.MeshBasicMaterial({ color: 0xf5f0dc });
+      const road = (pts, w, y, mat) => {
+        const m = new THREE.Mesh(ribbonGeo(pts, w, y), mat);
+        m.receiveShadow = true; scene.add(m);
+      };
+      const ARTERIALS = [
+        [[-280, -220], [-280, 1000]], [[-100, -220], [-100, 1000]],
+        [[1100, -220], [1100, 1000]], [[1280, -220], [1280, 1000]],
+        [[-320, -180], [1320, -180]], [[-320, 780], [1320, 780]], [[-320, 960], [1320, 960]],
+      ];
+      const STREETS = [
+        [[-190, -180], [-190, 780]], [[1190, -180], [1190, 780]],
+        [[-280, -80], [1280, -80]], [[200, 700], [200, 960]],
+        [[500, 700], [500, 960]], [[800, 700], [800, 960]],
+        [[-280, 850], [1280, 850]],
+      ];
+      for (const pts of ARTERIALS) {
+        road(pts, 19, 0.22, sideMat);
+        road(pts, 14, 0.42, artMat);
+        road(pts, 1.2, 0.5, lineMat);
+      }
+      for (const pts of STREETS) {
+        road(pts, 12, 0.22, sideMat);
+        road(pts, 8, 0.3, stMat);
+      }
+      // blocks: [x0,y0,x1,y1,kind] — tower|apt|house|park
+      const BLOCKS = [
+        [-262, -165, -202, 280, 'apt'], [-178, -165, -118, 280, 'house'],
+        [-262, 320, -202, 500, 'apt'], [-178, 320, -118, 500, 'house'],
+        [-262, 520, -118, 765, 'park'], [-262, 800, -118, 945, 'apt'],
+        [1115, -165, 1175, 280, 'apt'], [1205, -165, 1265, 280, 'house'],
+        [1115, 320, 1175, 520, 'tower'], [1205, 320, 1265, 520, 'apt'],
+        [1115, 540, 1265, 765, 'apt'], [1115, 800, 1265, 945, 'apt'],
+        [-265, -165, -120, -95, 'tower'], [200, -165, 800, -95, 'tower'], [940, -165, 1265, -95, 'apt'],
+        [-265, 700, 100, 765, 'apt'], [140, 700, 420, 765, 'park'], [460, 700, 740, 765, 'apt'], [840, 700, 1060, 765, 'tower'],
+        [-265, 870, 200, 945, 'apt'], [240, 870, 700, 945, 'park'], [740, 870, 1265, 945, 'apt'],
+      ];
+      const bCols = [0xd8d2c2, 0xc9c2b2, 0xe3ded2, 0xb09a80];
+      const buildings = [];
+      const treeSpots = [];
+      const parkMat = new THREE.MeshStandardMaterial({ color: 0x6f9a52, roughness: 1 });
+      for (const [x0, y0, x1, y1, kind] of BLOCKS) {
+        if (kind === 'park') {
+          const pk = flat(x1 - x0, y1 - y0, 0xffffff, 0.2);
+          pk.material = parkMat;
+          pk.position.set(GX((x0 + x1) / 2), 0.2, GZ((y0 + y1) / 2));
+          scene.add(pk);
+          road([[x0 + 8, (y0 + y1) / 2], [x1 - 8, (y0 + y1) / 2]], 4, 0.28, stMat);
+          road([[(x0 + x1) / 2, y0 + 8], [(x0 + x1) / 2, y1 - 8]], 4, 0.28, stMat);
+          const n = Math.floor(((x1 - x0) * (y1 - y0)) / 2500);
+          for (let i = 0; i < n; i++) treeSpots.push({ x: x0 + 15 + rng() * (x1 - x0 - 30), y: y0 + 15 + rng() * (y1 - y0 - 30), r: 5 + rng() * 4 });
+          continue;
         }
-        if (nearEdge) continue;
-        spots.push({ x, y, w: 22 + rng() * 42, h: 8 + rng() * 26, d: 22 + rng() * 42, r: rng() * 0.6 - 0.3, tone: rng() });
+        const nx = Math.max(1, Math.floor((x1 - x0 - 24) / 58));
+        const nz = Math.max(1, Math.floor((y1 - y0 - 24) / 58));
+        for (let ix = 0; ix < nx; ix++) for (let iz = 0; iz < nz; iz++) {
+          if (rng() < 0.12) continue;
+          const bx = x0 + 20 + ((x1 - x0 - 40) * (ix + 0.5)) / nx + (rng() - 0.5) * 10;
+          const by = y0 + 20 + ((y1 - y0 - 40) * (iz + 0.5)) / nz + (rng() - 0.5) * 10;
+          const h = kind === 'tower' ? 26 + rng() * 22 : kind === 'apt' ? 10 + rng() * 14 : 6 + rng() * 6;
+          const roll = rng();
+          const c = roll < 0.12 ? 0x9a5f46 : roll < 0.2 ? 0xe8e6e0 : bCols[Math.floor(rng() * bCols.length)];
+          buildings.push({ x: bx, y: by, w: 24 + rng() * 22, h, d: 24 + rng() * 22, r: (rng() - 0.5) * 0.12, c });
+          if (rng() < 0.5) treeSpots.push({ x: bx + 24, y: by + 8, r: 4 + rng() * 2.5 });
+        }
       }
       const cityGeo = new THREE.BoxGeometry(1, 1, 1);
       cityGeo.translate(0, 0.5, 0);
-      const city = new THREE.InstancedMesh(cityGeo, new THREE.MeshStandardMaterial({ roughness: 1 }), spots.length);
-      const cityCols = [0xcfc8b8, 0xbdb5a4, 0xd8d2c4, 0xa8a094, 0xc4bcac];
-      const d = new THREE.Object3D(), col = new THREE.Color();
-      const treeSpots = [];
-      spots.forEach((s, i) => {
-        d.position.set(GX(s.x), 0, GZ(s.y)); d.rotation.y = s.r; d.scale.set(s.w, s.h, s.d); d.updateMatrix();
-        city.setMatrixAt(i, d.matrix);
-        city.setColorAt(i, col.set(cityCols[Math.floor(s.tone * cityCols.length)]));
-        if (s.tone > 0.45) treeSpots.push({ x: s.x + s.w * 0.9, y: s.y, r: 5 + s.tone * 3 });
-      });
+      const city = new THREE.InstancedMesh(cityGeo, new THREE.MeshStandardMaterial({ roughness: 1 }), Math.max(1, buildings.length));
+      {
+        const d = new THREE.Object3D(), col = new THREE.Color();
+        buildings.forEach((s, i) => {
+          d.position.set(GX(s.x), 0, GZ(s.y)); d.rotation.y = s.r; d.scale.set(s.w, s.h, s.d); d.updateMatrix();
+          city.setMatrixAt(i, d.matrix);
+          city.setColorAt(i, col.set(s.c));
+        });
+      }
       city.instanceMatrix.needsUpdate = true;
       if (city.instanceColor) city.instanceColor.needsUpdate = true;
       scene.add(city);
-      // distant scrub trees (canopy blobs, no trunks at this LOD)
+      // street trees along every city street
+      for (const pts of [...ARTERIALS, ...STREETS]) {
+        const [[ax, ay], [bx, by]] = pts;
+        const L = Math.hypot(bx - ax, by - ay);
+        const dx = (bx - ax) / L, dy = (by - ay) / L;
+        for (let dd = 20; dd < L - 10; dd += 55) {
+          for (const s of [-1, 1]) {
+            const tx = ax + dx * dd - dy * 14 * s, ty = ay + dy * dd + dx * 14 * s;
+            if (!inPoly(tx, ty)) treeSpots.push({ x: tx, y: ty, r: 4.5 + rng() * 2 });
+          }
+        }
+      }
       const scrub = new THREE.InstancedMesh(
         new THREE.IcosahedronGeometry(1, 0),
         new THREE.MeshStandardMaterial({ roughness: 1 }),
-        treeSpots.length,
+        Math.max(1, treeSpots.length),
       );
-      treeSpots.forEach((t, i) => {
-        d.position.set(GX(t.x), t.r * 0.5, GZ(t.y)); d.rotation.y = 0; d.scale.set(t.r, t.r * 0.7, t.r); d.updateMatrix();
-        scrub.setMatrixAt(i, d.matrix);
-        scrub.setColorAt(i, col.set(i % 2 ? 0x5d7a44 : 0x6b8a4e));
-      });
+      {
+        const d = new THREE.Object3D(), col = new THREE.Color();
+        treeSpots.forEach((t, i) => {
+          d.position.set(GX(t.x), t.r * 0.5, GZ(t.y)); d.rotation.y = 0; d.scale.set(t.r, t.r * 0.7, t.r); d.updateMatrix();
+          scrub.setMatrixAt(i, d.matrix);
+          scrub.setColorAt(i, col.set(i % 2 ? 0x5d7a44 : 0x6b8a4e));
+        });
+      }
       scrub.instanceMatrix.needsUpdate = true;
       if (scrub.instanceColor) scrub.instanceColor.needsUpdate = true;
       scene.add(scrub);
-      // outer arterials: west highway + south road
-      for (const pts of [[[-140, -200], [-140, 900]], [[-200, 860], [1200, 860]]]) {
-        const m = new THREE.Mesh(ribbonGeo(pts, 18, 0.1), new THREE.MeshStandardMaterial({ color: 0x77716a, roughness: 1 }));
-        m.receiveShadow = true; scene.add(m);
+      // parking lots: gray slab + slot stripes
+      for (const [px, py] of [[790, 715], [-225, 595]]) {
+        const lot = flat(70, 30, 0x8a8d94, 0.24);
+        lot.position.set(GX(px), 0.24, GZ(py)); scene.add(lot);
+        for (let i = 0; i < 8; i++) {
+          const slot = new THREE.Mesh(new THREE.PlaneGeometry(1, 22), lineMat);
+          slot.rotation.x = -Math.PI / 2;
+          slot.position.set(GX(px - 30 + i * 8.5), 0.3, GZ(py));
+          scene.add(slot);
+        }
+      }
+      // far skyline: tall muted slabs fading into fog
+      {
+        const skyGeo = new THREE.BoxGeometry(1, 1, 1);
+        skyGeo.translate(0, 0.5, 0);
+        const N = 24;
+        const sky = new THREE.InstancedMesh(skyGeo, new THREE.MeshStandardMaterial({ roughness: 1 }), N);
+        const d = new THREE.Object3D(), col = new THREE.Color();
+        const skyCols = [0x9aa0b0, 0xb0a89a, 0x8a94a4, 0xc0b8a8];
+        for (let i = 0; i < N; i++) {
+          const a = (i / N) * TAU + 0.2;
+          const rr = 1700 + ((i * 397) % 700);
+          d.position.set(Math.cos(a) * rr, 0, Math.sin(a) * rr * 0.85);
+          d.rotation.y = a; d.scale.set(50 + ((i * 53) % 40), 60 + ((i * 89) % 90), 50 + ((i * 61) % 40));
+          d.updateMatrix();
+          sky.setMatrixAt(i, d.matrix);
+          sky.setColorAt(i, col.set(skyCols[i % skyCols.length]));
+        }
+        sky.instanceMatrix.needsUpdate = true;
+        if (sky.instanceColor) sky.instanceColor.needsUpdate = true;
+        sky.frustumCulled = false;
+        scene.add(sky);
       }
     }
     for (const pz of PLAZAS) {
