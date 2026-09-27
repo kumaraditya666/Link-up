@@ -71,7 +71,7 @@ function updateNetPill() {
 function renderDebug() {
   updateNetPill();
   const lines = [
-    `build: 24 · mode: ${Net.mode.toUpperCase()} · ghost: ${S.ghost ? 'ON' : 'off'}`,
+    `build: 25 · mode: ${Net.mode.toUpperCase()} · ghost: ${S.ghost ? 'ON' : 'off'}`,
     `server: ${Net.base || '(none)'}`,
     `me: ${Net.me ? `${Net.me.name} (${Net.me.id})` : '(not joined)'}`,
     `profile: ${myName()} · ${S.profile.dept}`,
