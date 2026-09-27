@@ -15,14 +15,14 @@
 <link rel="apple-touch-icon" href="./icons/icon-192.png" />
 <style>
 /* Critical splash styles (full app CSS in css/app.css) */
-#splash{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:radial-gradient(1200px 600px at 50% -10%,#1b2350 0%,#070b16 60%),#070b16;color:#fff;transition:opacity .5s ease,visibility .5s}
+#splash{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:#080a0f;color:#fff;transition:opacity .5s ease,visibility .5s}
 #splash.hide{opacity:0;visibility:hidden}
 .splash-mark{width:84px;height:84px}
 .splash-word{font:800 30px/1 system-ui;letter-spacing:6px}
-.splash-word span{background:linear-gradient(90deg,#a78bfa,#22d3ee,#a3e635);-webkit-background-clip:text;background-clip:text;color:transparent}
+.splash-word span{color:var(--lime,#b7ff2a)}
 .splash-tag{opacity:.7;font:500 13px system-ui;letter-spacing:1px}
-.splash-bar{width:180px;height:4px;border-radius:99px;background:#ffffff1f;overflow:hidden}
-.splash-bar i{display:block;height:100%;width:40%;border-radius:99px;background:linear-gradient(90deg,#7c3aed,#06b6d4);animation:load 1.1s infinite ease-in-out}
+.splash-bar{width:180px;height:4px;border-radius:99px;background:#ffffff1a;overflow:hidden}
+.splash-bar i{display:block;height:100%;width:40%;border-radius:99px;background:#b7ff2a;animation:load 1.1s infinite ease-in-out}
 @keyframes load{0%{transform:translateX(-100%)}100%{transform:translateX(450%)}}
 </style>
 <link rel="stylesheet" href="./css/app.css" />
@@ -30,13 +30,10 @@
 <body>
 <div id="splash" aria-hidden="true">
   <svg class="splash-mark" viewBox="0 0 64 64" fill="none" aria-hidden="true">
-    <rect x="2" y="2" width="60" height="60" rx="18" fill="url(#sg)"/>
+    <rect x="2" y="2" width="60" height="60" rx="18" fill="#11151c" stroke="#ffffff22"/>
     <circle cx="22" cy="32" r="8" fill="#fff"/>
-    <circle cx="42" cy="32" r="8" fill="#fff" opacity=".55"/>
-    <path d="M28 32h8" stroke="#070b16" stroke-width="4" stroke-linecap="round"/>
-    <circle cx="22" cy="32" r="3" fill="#7c3aed"/>
-    <circle cx="42" cy="32" r="3" fill="#06b6d4"/>
-    <defs><linearGradient id="sg" x1="0" y1="0" x2="64" y2="64"><stop stop-color="#7c3aed"/><stop offset="1" stop-color="#06b6d4"/></linearGradient></defs>
+    <circle cx="42" cy="32" r="8" fill="#b7ff2a"/>
+    <path d="M28 32h8" stroke="#080a0f" stroke-width="4" stroke-linecap="round"/>
   </svg>
   <div class="splash-word">LINK <span>UP</span></div>
   <div class="splash-tag">NSUT, but connected.</div>
@@ -48,13 +45,10 @@
   <header id="topbar">
     <div class="brand" id="brandHome" role="button" tabindex="0" aria-label="Link Up home">
       <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true">
-        <rect x="2" y="2" width="60" height="60" rx="18" fill="url(#bg1)"/>
+        <rect x="2" y="2" width="60" height="60" rx="18" fill="#11151c" stroke="#ffffff22"/>
         <circle cx="22" cy="32" r="8" fill="#fff"/>
-        <circle cx="42" cy="32" r="8" fill="#fff" opacity=".55"/>
-        <path d="M28 32h8" stroke="#070b16" stroke-width="4" stroke-linecap="round"/>
-        <circle cx="22" cy="32" r="3" fill="#7c3aed"/>
-        <circle cx="42" cy="32" r="3" fill="#06b6d4"/>
-        <defs><linearGradient id="bg1" x1="0" y1="0" x2="64" y2="64"><stop stop-color="#7c3aed"/><stop offset="1" stop-color="#06b6d4"/></linearGradient></defs>
+        <circle cx="42" cy="32" r="8" fill="#b7ff2a"/>
+        <path d="M28 32h8" stroke="#080a0f" stroke-width="4" stroke-linecap="round"/>
       </svg>
       <div class="brand-text">
         <strong>LINK UP</strong>
@@ -94,7 +88,7 @@
       <p id="sideStats">8 friends live · 5 busy spots</p>
       <button id="sideLinkUp" class="btn-primary">Link Up ⚡</button>
     </div>
-    <div class="side-foot">Link Up — NSUT · build 21</div>
+    <div class="side-foot">Link Up — NSUT · build 22</div>
   </aside>
 
   <!-- ===== Main ===== -->
@@ -154,6 +148,7 @@
           <div id="sheetCards" class="h-scroll"></div>
         </div>
         <div id="mapTip" hidden></div>
+        <div id="hoverTip" hidden></div>
         <div id="mapCredit" title="Stylized miniature — building shapes are approximate">3D miniature · approximate</div>
       </div>
     </section>

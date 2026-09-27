@@ -9,9 +9,9 @@ const store = {
   set(k, v) { try { localStorage.setItem('linkup.live.' + k, JSON.stringify(v)); } catch {} },
 };
 const GRADS = [
-  'linear-gradient(135deg,#7c3aed,#ec4899)', 'linear-gradient(135deg,#06b6d4,#3b82f6)',
-  'linear-gradient(135deg,#10b981,#06b6d4)', 'linear-gradient(135deg,#f59e0b,#ef4444)',
-  'linear-gradient(135deg,#8b5cf6,#06b6d4)', 'linear-gradient(135deg,#ec4899,#f59e0b)',
+  '#232b3d', '#262f45',
+  '#20293b', '#2b3348',
+  '#242e42', '#2e3648',
 ];
 const gradFor = (id) => { let h = 0; for (const c of id) h = (h * 31 + c.charCodeAt(0)) >>> 0; return GRADS[h % GRADS.length]; };
 

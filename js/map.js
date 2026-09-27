@@ -94,6 +94,7 @@ const ME_POS = { x: 350, y: 400 };
 
 export function createMap(canvas, opts = {}) {
   const onSelect = opts.onSelect || (() => {});
+  const onHover = opts.onHover || (() => {});
   const friendsRef = { list: FRIENDS };
   const state = {
     layer: 'friends', ghost: false, mokshaFilter: false, selected: null,
@@ -451,9 +452,9 @@ export function createMap(canvas, opts = {}) {
   /* ---------- me + friends ---------- */
   const meGroup = new THREE.Group();
   {
-    const dot = new THREE.Mesh(new THREE.SphereGeometry(4, 20, 14), new THREE.MeshBasicMaterial({ color: 0x3b82f6 }));
+    const dot = new THREE.Mesh(new THREE.SphereGeometry(4, 20, 14), new THREE.MeshBasicMaterial({ color: 0xb7ff2a }));
     dot.position.y = 4; meGroup.add(dot);
-    const ring = new THREE.Mesh(new THREE.RingGeometry(6, 8.5, 40), new THREE.MeshBasicMaterial({ color: 0x3b82f6, transparent: true, opacity: 0.8, side: THREE.DoubleSide }));
+    const ring = new THREE.Mesh(new THREE.RingGeometry(6, 8.5, 40), new THREE.MeshBasicMaterial({ color: 0xb7ff2a, transparent: true, opacity: 0.8, side: THREE.DoubleSide }));
     ring.rotation.x = -Math.PI / 2; ring.position.y = 0.6; meGroup.add(ring);
     meGroup.position.set(GX(ME_POS.x), 0, GZ(ME_POS.y));
     scene.add(meGroup);
@@ -461,9 +462,9 @@ export function createMap(canvas, opts = {}) {
   function pinTexture(text, bg, fg) {
     const c = document.createElement('canvas'); c.width = c.height = 96;
     const g = c.getContext('2d');
-    g.beginPath(); g.arc(48, 48, 44, 0, TAU); g.fillStyle = 'rgba(34,211,238,.25)'; g.fill();
+    g.beginPath(); g.arc(48, 48, 44, 0, TAU); g.fillStyle = 'rgba(183,255,42,.22)'; g.fill();
     g.beginPath(); g.arc(48, 48, 32, 0, TAU); g.fillStyle = bg; g.fill();
-    g.lineWidth = 4; g.strokeStyle = '#22d3ee'; g.stroke();
+    g.lineWidth = 4; g.strokeStyle = '#b7ff2a'; g.stroke();
     g.fillStyle = fg; g.font = '800 34px system-ui'; g.textAlign = 'center'; g.textBaseline = 'middle';
     g.fillText(text, 48, 50);
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
@@ -483,14 +484,14 @@ export function createMap(canvas, opts = {}) {
   let beams = [];
   const crowdDot = new THREE.Mesh(
     new THREE.SphereGeometry(4.5, 14, 10),
-    new THREE.MeshBasicMaterial({ color: 0xa3e635 }),
+    new THREE.MeshBasicMaterial({ color: 0xb7ff2a }),
   );
   crowdDot.visible = false;
   mokGroup.add(crowdDot);
   {
     mokPulse = new THREE.Mesh(new THREE.RingGeometry(46, 50, 64), new THREE.MeshBasicMaterial({ color: 0xfbbf24, transparent: true, opacity: 0.6, side: THREE.DoubleSide, depthWrite: false }));
     mokPulse.rotation.x = -Math.PI / 2; mokGroup.add(mokPulse);
-    venueRing = new THREE.Mesh(new THREE.RingGeometry(30, 34, 64), new THREE.MeshBasicMaterial({ color: 0x22d3ee, transparent: true, opacity: 0.7, side: THREE.DoubleSide, depthWrite: false }));
+    venueRing = new THREE.Mesh(new THREE.RingGeometry(30, 34, 64), new THREE.MeshBasicMaterial({ color: 0xb7ff2a, transparent: true, opacity: 0.7, side: THREE.DoubleSide, depthWrite: false }));
     venueRing.rotation.x = -Math.PI / 2; venueRing.visible = false; mokGroup.add(venueRing);
   }
   function markerTexture(ev) {
@@ -498,11 +499,11 @@ export function createMap(canvas, opts = {}) {
     const g = c.getContext('2d');
     const live = eventStatus(ev) === 'live';
     g.fillStyle = 'rgba(7,11,22,.94)';
-    g.strokeStyle = live ? '#a3e635' : '#7dd3fc'; g.lineWidth = 3;
+    g.strokeStyle = live ? '#b7ff2a' : '#7dd3fc'; g.lineWidth = 3;
     g.beginPath(); g.roundRect(28, 8, 200, 84, 16); g.fill(); g.stroke();
     g.font = '30px system-ui'; g.textAlign = 'center'; g.fillText('🎭', 128, 42);
     g.fillStyle = '#fff'; g.font = '800 24px system-ui'; g.fillText('MOKSHA', 128, 68);
-    g.fillStyle = live ? '#a3e635' : '#7dd3fc'; g.font = '800 15px system-ui';
+    g.fillStyle = live ? '#b7ff2a' : '#7dd3fc'; g.font = '800 15px system-ui';
     g.fillText(live ? '● LIVE EVENT' : 'LIVE EVENT', 128, 86);
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
     return t;
@@ -571,7 +572,7 @@ export function createMap(canvas, opts = {}) {
     } else venueRing.visible = false;
     const wantBeams = MODES[state.timeOfDay].beams > 0 && st !== 'ended';
     if (wantBeams && beams.length === 0 && stageGroup) {
-      const bm = new THREE.MeshBasicMaterial({ color: 0xa78bfa, transparent: true, opacity: MODES[state.timeOfDay].beams * 0.5, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+      const bm = new THREE.MeshBasicMaterial({ color: 0xffe9b8, transparent: true, opacity: MODES[state.timeOfDay].beams * 0.5, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
       for (const sx of [-20, 20]) {
         const cone = new THREE.Mesh(new THREE.ConeGeometry(9, 55, 12, 1, true), bm);
         cone.position.set(GX(main.campus_x) + sx, 42, GZ(main.campus_y) + 6);
@@ -648,6 +649,7 @@ export function createMap(canvas, opts = {}) {
     return null;
   }
   let drag = null, moved = 0, pinchD = 0, downT = 0;
+  const hoverTick = {};
   canvas.addEventListener('pointerdown', (e) => {
     canvas.setPointerCapture(e.pointerId);
     fly = null; downT = performance.now();
@@ -655,7 +657,16 @@ export function createMap(canvas, opts = {}) {
     moved = 0;
   });
   canvas.addEventListener('pointermove', (e) => {
-    if (!drag) return;
+    if (!drag) {
+      // hover preview (throttled): building/friend name near cursor
+      const nowT = performance.now();
+      if (nowT - (hoverTick._l || 0) > 90 && e.pointerType !== 'touch') {
+        hoverTick._l = nowT;
+        const r = canvas.getBoundingClientRect();
+        onHover(pick(e.clientX - r.left, e.clientY - r.top), e.clientX, e.clientY);
+      }
+      return;
+    }
     moved += 1;
     if (drag.orbit) {
       goal.yaw = drag.yaw - (e.clientX - drag.x) * 0.0052;
@@ -732,7 +743,7 @@ export function createMap(canvas, opts = {}) {
     routeDots = [];
     state.route = r;
     if (!r) return;
-    const mesh = new THREE.Mesh(ribbonGeo(r.pts, 6, 0.7), new THREE.MeshBasicMaterial({ color: 0x22d3ee, transparent: true, opacity: 0.9 }));
+    const mesh = new THREE.Mesh(ribbonGeo(r.pts, 6, 0.7), new THREE.MeshBasicMaterial({ color: 0xb7ff2a, transparent: true, opacity: 0.85 }));
     scene.add(mesh); routeMesh = mesh;
     const dotG = new THREE.SphereGeometry(2.2, 10, 8);
     const dotM = new THREE.MeshBasicMaterial({ color: 0xffffff });
@@ -828,8 +839,15 @@ export function createMap(canvas, opts = {}) {
         }
       }
     }
-    const showFriends = !state.ghost && (state.layer === 'friends' || state.layer === 'events');
-    for (const sp of friendSprites) sp.visible = showFriends;
+    const showFriendsLayer = state.layer === 'friends' || state.layer === 'events';
+    state.ghostMix += (((state.ghost ? 0 : 1) - (state.ghostMix ?? 1)) * Math.min(1, dt * 4));
+    const gm = state.ghostMix ?? 1;
+    friendSprites.forEach((sp, i) => {
+      sp.visible = showFriendsLayer && gm > 0.03;
+      sp.material.opacity = gm;
+      const s = 22 * (1 + 0.07 * Math.sin(state.t * 3 + i * 1.7));
+      sp.scale.set(s, s, 1);
+    });
     meGroup.visible = true;
     renderer.render(scene, camera);
     updateLabels();

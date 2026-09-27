@@ -5,19 +5,19 @@
  * mid-campus, Gym east, Sports Complex far east, NESCII halls, Guest House +
  * Girls Hostel south. Positions are stylized approximations, not survey data.
  */
-export const ME = { id: 'me', name: 'Aditya', short: 'A', dept: "CSE '27", grad: 'linear-gradient(135deg,#f59e0b,#ef4444)' };
+export const ME = { id: 'me', name: 'Aditya', short: 'A', dept: "CSE '27", grad: '#232b3d' };
 
 export const SPOTS = ['Moksha Ground', 'Student Canteen', 'SAC Lawns', 'Amul Ground', 'Central Library', 'Flag Circle'];
 
 export const FRIENDS = [
-  { id: 'ananya', name: 'Ananya Sharma', short: 'AS', dept: "CSE '27", grad: 'linear-gradient(135deg,#7c3aed,#ec4899)', spot: 'SAC Lawns', dist: 153, online: true, x: 520, y: 390, vibe: 'Chai + debug break ☕' },
-  { id: 'kabir', name: 'Kabir Mehta', short: 'KM', dept: "ECE '26", grad: 'linear-gradient(135deg,#06b6d4,#3b82f6)', spot: 'Moksha Ground', dist: 140, online: true, x: 470, y: 300, vibe: 'Frisbee? 🥏' },
-  { id: 'meera', name: 'Meera Iyer', short: 'MI', dept: "BT '27", grad: 'linear-gradient(135deg,#10b981,#06b6d4)', spot: 'Near Library', dist: 180, online: true, x: 550, y: 395, vibe: 'Study room 2 📚' },
-  { id: 'arjun', name: 'Arjun Rao', short: 'AR', dept: "ME '25", grad: 'linear-gradient(135deg,#f59e0b,#ef4444)', spot: 'Sports Complex', dist: 392, online: true, x: 780, y: 470, vibe: 'Evening trials ⚽' },
-  { id: 'sara', name: 'Sara Khan', short: 'SK', dept: "CSE '26", grad: 'linear-gradient(135deg,#8b5cf6,#06b6d4)', spot: 'Student Canteen', dist: 221, online: true, x: 460, y: 180, vibe: 'Cold coffee run 🧋' },
-  { id: 'rohan', name: 'Rohan Verma', short: 'RV', dept: "ICE '27", grad: 'linear-gradient(135deg,#334155,#06b6d4)', spot: 'Boys Hostel', dist: 255, online: false, x: 200, y: 160, vibe: 'Back in 20 ⏳' },
-  { id: 'ishita', name: 'Ishita Gupta', short: 'IG', dept: "CSA '26", grad: 'linear-gradient(135deg,#ec4899,#f59e0b)', spot: 'Amul Ground', dist: 184, online: true, x: 230, y: 235, vibe: 'Rajma chawal > everything 🍛' },
-  { id: 'vikram', name: 'Vikram Singh', short: 'VS', dept: "CE '25", grad: 'linear-gradient(135deg,#22c55e,#a3e635)', spot: 'Near Main Gate', dist: 265, online: false, x: 60, y: 450, vibe: 'Gym leg day 🦵' },
+  { id: 'ananya', name: 'Ananya Sharma', short: 'AS', dept: "CSE '27", grad: '#262f45', spot: 'SAC Lawns', dist: 153, online: true, x: 520, y: 390, vibe: 'Chai + debug break ☕' },
+  { id: 'kabir', name: 'Kabir Mehta', short: 'KM', dept: "ECE '26", grad: '#20293b', spot: 'Moksha Ground', dist: 140, online: true, x: 470, y: 300, vibe: 'Frisbee? 🥏' },
+  { id: 'meera', name: 'Meera Iyer', short: 'MI', dept: "BT '27", grad: '#2b3348', spot: 'Near Library', dist: 180, online: true, x: 550, y: 395, vibe: 'Study room 2 📚' },
+  { id: 'arjun', name: 'Arjun Rao', short: 'AR', dept: "ME '25", grad: '#242e42', spot: 'Sports Complex', dist: 392, online: true, x: 780, y: 470, vibe: 'Evening trials ⚽' },
+  { id: 'sara', name: 'Sara Khan', short: 'SK', dept: "CSE '26", grad: '#2e3648', spot: 'Student Canteen', dist: 221, online: true, x: 460, y: 180, vibe: 'Cold coffee run 🧋' },
+  { id: 'rohan', name: 'Rohan Verma', short: 'RV', dept: "ICE '27", grad: '#222a3c', spot: 'Boys Hostel', dist: 255, online: false, x: 200, y: 160, vibe: 'Back in 20 ⏳' },
+  { id: 'ishita', name: 'Ishita Gupta', short: 'IG', dept: "CSA '26", grad: '#2c3449', spot: 'Amul Ground', dist: 184, online: true, x: 230, y: 235, vibe: 'Rajma chawal > everything 🍛' },
+  { id: 'vikram', name: 'Vikram Singh', short: 'VS', dept: "CE '25", grad: '#232b3d', spot: 'Near Main Gate', dist: 265, online: false, x: 60, y: 450, vibe: 'Gym leg day 🦵' },
 ];
 
 export const BUILDINGS = [

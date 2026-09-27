@@ -122,6 +122,34 @@ function toast(msg, ms = 2800) {
   setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 400); }, ms);
 }
 
+/* ---------- tactile interactions: card tilt + magnetic buttons ---------- */
+if (matchMedia('(hover:hover)').matches && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  document.addEventListener('pointermove', (e) => {
+    const card = e.target.closest?.('.card');
+    $$('.card.tilting').forEach((c) => { if (c !== card) { c.classList.remove('tilting'); c.style.transform = ''; } });
+    if (card) {
+      const r = card.getBoundingClientRect();
+      const rx = ((e.clientY - r.top) / r.height - 0.5) * -5;
+      const ry = ((e.clientX - r.left) / r.width - 0.5) * 5;
+      card.classList.add('tilting');
+      card.style.transform = `perspective(700px) rotateX(${rx.toFixed(2)}deg) rotateY(${ry.toFixed(2)}deg) translateY(-3px)`;
+    }
+    const mag = e.target.closest?.('.btn-primary, .mini-btn.go, #sheetLinkUp, #sideLinkUp');
+    $$('.magnet').forEach((m) => { if (m !== mag) { m.classList.remove('magnet'); m.style.transform = ''; } });
+    if (mag && !mag.disabled) {
+      const r = mag.getBoundingClientRect();
+      const dx = (e.clientX - (r.left + r.width / 2)) / (r.width / 2);
+      const dy = (e.clientY - (r.top + r.height / 2)) / (r.height / 2);
+      mag.classList.add('magnet');
+      mag.style.transform = `translate(${(dx * 3).toFixed(1)}px, ${(dy * 3).toFixed(1)}px)`;
+    }
+  });
+  document.addEventListener('pointerout', (e) => {
+    const t = e.target.closest?.('.card.tilting, .magnet');
+    if (t) { t.classList.remove('tilting', 'magnet'); t.style.transform = ''; }
+  });
+}
+
 /* ---------- routing ---------- */
 const VIEWS = ['map', 'friends', 'nearby', 'places', 'explore', 'events', 'messages'];
 function go(view) {
@@ -151,7 +179,25 @@ $('#brandHome')?.addEventListener('click', () => go('map'));
 $('#brandHome')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') go('map'); });
 
 /* ---------- map ---------- */
-const map = createMap($('#campusMap'), { onSelect });
+const map = createMap($('#campusMap'), { onSelect, onHover });
+function onHover(hit, x, y) {
+  const tip = $('#hoverTip');
+  const cv = $('#campusMap');
+  if (!hit || hit.kind === 'moksha') {
+    tip.hidden = true;
+    if (cv) cv.style.cursor = hit ? 'pointer' : 'grab';
+    return;
+  }
+  let name = null;
+  if (hit.kind === 'friend') name = getPerson(hit.id)?.name.split(' ')[0];
+  else if (hit.kind === 'place') name = BUILDINGS.find((b) => b.id === hit.id)?.label || hit.id;
+  if (!name) { tip.hidden = true; return; }
+  tip.textContent = name;
+  tip.hidden = false;
+  tip.style.left = Math.min(window.innerWidth - 130, x + 14) + 'px';
+  tip.style.top = Math.max(70, y - 14) + 'px';
+  if (cv) cv.style.cursor = 'pointer';
+}
 map.setGhost(S.ghost);
 map.friendsRef.list = FRIENDS;
 function onSelect(hit) {
@@ -172,6 +218,7 @@ function onSelect(hit) {
     tip.innerHTML = `<strong>${b ? b.label : hit.id}</strong><br><span class="muted">${p ? p.desc : 'NSUT Dwarka'}</span>`;
     tip.hidden = false;
     tip.style.left = '50%'; tip.style.top = '34%';
+    if (b) { const d = (map.state && map.state.cam && map.state.cam.dist) || 900; map.flyTo(b.x, b.y, { dist: Math.min(d, 620) }); }
     setTimeout(() => (tip.hidden = true), 3200);
   }
 }
@@ -439,7 +486,7 @@ function renderFriends() {
   const live = livePeople();
   const liveHtml = live.length && S.friendFilter !== 'linked'
     ? `<h2 style="grid-column:1/-1;margin:4px 2px 0">Live on campus ⚡ <span class="muted">${live.length} via server</span></h2>` + live.map((f) => `
-    <div class="card" style="border-color:#a3e63555"><div class="row"><span class="avatar" style="background:${f.grad}">${f.short.slice(0, 1)}</span>
+    <div class="card" style="border-color:#b7ff2a55"><div class="row"><span class="avatar" style="background:${f.grad}">${f.short.slice(0, 1)}</span>
       <div style="flex:1"><h3>${f.name} ${f.bot ? '<small>🤖</small>' : ''}</h3><small>${f.dept} · ${f.spot} · ${f.dist} m</small></div>
       <span class="dot on"></span></div>
       <p class="muted" style="margin:8px 0">${f.vibe}</p>
@@ -473,7 +520,7 @@ function renderFriends() {
     if (S.view === 'friends') renderFriends();
   }));
   const inc = [...S.incomingQueue.map((q) => ({ ...q, pending: true })), ...S.incoming];
-  const ginv = S.groupInvites.map((g) => `<div class="incoming-card"><span class="avatar" style="background:linear-gradient(135deg,#7c3aed,#f59e0b)">👥</span>
+  const ginv = S.groupInvites.map((g) => `<div class="incoming-card"><span class="avatar" style="background:#1b212c;border-color:#f5b83d66">👥</span>
       <div class="grow"><strong>Group link up at ${g.spot}.</strong><small>${g.members.map((m) => m.name.split(' ')[0]).join(', ')}</small></div>
       <button class="mini-btn" data-gdec="${g.id}">Decline</button>
       <button class="mini-btn go" data-gjoin="${g.id}">Join</button></div>`).join('');
@@ -790,7 +837,7 @@ function groupPerson(fid) {
   const g = S.group && ('group:' + S.group.id) === fid ? S.group : null;
   return {
     id: fid, name: S.groupNames[fid] || (g ? groupThreadName(g) : 'Group hangout'),
-    short: '👥', grad: 'linear-gradient(135deg,#7c3aed,#f59e0b)', online: !!g,
+    short: '👥', grad: '#1b212c', online: !!g,
     spot: g ? g.spot : 'ended', live: true, group: true,
   };
 }
@@ -840,7 +887,7 @@ function renderPlaces() {
   g.innerHTML = list.map((p) => `<button class="card" data-place="${p.id}" style="text-align:left;color:inherit">
     <div style="font-size:34px">${p.emoji}</div><h3 style="margin:6px 0 2px">${p.name}</h3>
     <small>★ ${p.rating} · ${p.busy}</small>
-    <div class="row" style="margin-top:8px;gap:6px"><span class="tag">${p.cat}</span>${S.visited.includes(p.id) ? '<span class="tag" style="color:var(--lime);border-color:#a3e63555">✓ visited</span>' : '<span class="tag">new</span>'}<span style="flex:1"></span><span class="muted">${p.hours}</span></div></button>`).join('')
+    <div class="row" style="margin-top:8px;gap:6px"><span class="tag">${p.cat}</span>${S.visited.includes(p.id) ? '<span class="tag" style="color:var(--lime);border-color:#b7ff2a55">✓ visited</span>' : '<span class="tag">new</span>'}<span style="flex:1"></span><span class="muted">${p.hours}</span></div></button>`).join('')
     || `<div class="card">Nothing here yet — go explore NSUT! 🗺️</div>`;
   $$('[data-place]', g).forEach((b) => (b.onclick = () => openPlace(b.dataset.place)));
 }
@@ -905,7 +952,7 @@ function renderExplore() {
     const stops = (t.stops || []).map((s) => `<div class="row" style="gap:6px;margin-top:4px;font-size:13px"><span>${S.visited.includes(s) ? '✅' : '◻️'}</span><span style="flex:1">${pname(s)}</span>${!S.visited.includes(s) && pr.next === s ? `<button class="mini-btn go" data-route="${s}">Route →</button>` : ''}</div>`).join('');
     return `<div class="card"><div class="row"><div style="flex:1"><h3>${t.title}</h3><small>${t.meta}</small></div><strong style="color:var(--lime)">${pr.pct}%</strong></div>
     <p class="muted">${t.desc}</p>
-    <div style="height:8px;border-radius:99px;background:#ffffff14;overflow:hidden"><i style="display:block;height:100%;width:${pr.pct}%;background:var(--grad)"></i></div>
+    <div style="height:8px;border-radius:99px;background:#ffffff14;overflow:hidden"><i style="display:block;height:100%;width:${pr.pct}%;background:var(--lime)"></i></div>
     ${stops}
     ${pr.complete ? `<p style="color:var(--lime);font-weight:800;margin:8px 0 0">Badge earned: ${t.badge} 🎉</p>` : `<p class="muted" style="margin:8px 0 0">Badge: ${t.badge} · check in at places to progress</p>`}</div>`;
   }).join('');
@@ -942,7 +989,7 @@ function renderAnnounce() {
   const box = $('#announceBox');
   if (!box) return;
   const list = getAnn().slice(0, 3);
-  box.innerHTML = list.map((a) => `<div class="mk-strip" style="border-color:#22d3ee66"><div style="font-size:24px">📢</div>
+  box.innerHTML = list.map((a) => `<div class="mk-strip" style="border-color:#7dd3fc55"><div style="font-size:24px">📢</div>
     <div class="grow"><strong>Organizers</strong><br><small class="muted">${a.text}</small></div></div>`).join('');
 }
 function renderEvents() {
@@ -1120,7 +1167,7 @@ function renderThreads() {
     if (el) { el.hidden = !total; el.textContent = total; }
   }
   $('#threadList').innerHTML = ids.map((id) => {
-    const f = getPerson(id) || groupPerson(id) || { name: id, grad: 'var(--grad)', short: '?' };
+    const f = getPerson(id) || groupPerson(id) || { name: id, grad: '#232b3d', short: '?' };
     const last = S.inbox[id].at(-1);
     return `<button class="thread ${S.activeChat === id ? 'active' : ''}" data-th="${id}">
       <span class="avatar" style="background:${f.grad}">${(f.short || '?').slice(0, 1)}</span>
@@ -1246,7 +1293,7 @@ function openProfile() {
   $('#profileNote').textContent = Net.live ? 'Name change rejoins the live server (page reloads).' : '';
   $('#storageInfo').textContent = `Local data: ~${storageKB()} KB on this device`;
   const earned = Social.earnedBadges(TRAILS, S.visited, Social.linkupCount());
-  $('#badgeShelf').innerHTML = Social.BADGES.map((b) => `<span class="tag" style="${earned.includes(b.id) ? 'color:var(--lime);border-color:#a3e63555' : 'opacity:.45'}" title="${b.desc}">${earned.includes(b.id) ? b.name : '🔒 ' + b.name.split(' ')[0]}</span>`).join('');
+  $('#badgeShelf').innerHTML = Social.BADGES.map((b) => `<span class="tag" style="${earned.includes(b.id) ? 'color:var(--lime);border-color:#b7ff2a55' : 'opacity:.45'}" title="${b.desc}">${earned.includes(b.id) ? b.name : '🔒 ' + b.name.split(' ')[0]}</span>`).join('');
   $('#blockedWrap').hidden = true;
   if (Net.live) {
     Net.blockedList().then((list) => {
