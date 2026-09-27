@@ -66,13 +66,14 @@ function updateNetPill() {
 function renderDebug() {
   updateNetPill();
   const lines = [
-    `build: 11 · mode: ${Net.mode.toUpperCase()} · ghost: ${S.ghost ? 'ON' : 'off'}`,
+    `build: 15 · mode: ${Net.mode.toUpperCase()} · ghost: ${S.ghost ? 'ON' : 'off'}`,
     `server: ${Net.base || '(none)'}`,
     `me: ${Net.me ? `${Net.me.name} (${Net.me.id})` : '(not joined)'}`,
     `profile: ${myName()} · ${S.profile.dept}`,
     `roster: ${Net.roster.length} other(s)`,
     ...Net.roster.map((u) => `  - ${u.name} [${u.id}] ${u.bot ? '(bot)' : '(human)'} @${u.x},${u.y}`),
     `session: ${S.session ? S.session.withName + ' ' + S.session.spot : '(none)'} · outgoing: ${S.outgoing ? S.outgoing.toId : '(none)'}`,
+    `outbox: ${Net.outbox().length} queued`,
     '--- event log ---',
     ...Net.log.slice(-15),
   ];
@@ -475,6 +476,7 @@ $('#sendLinkUp').onclick = async () => {
     S.outgoing = { toId: f.id, live: true };
     persist(); renderFriends();
     const r = await Net.sendLinkup(f.id, S.spotPick, S.durPick);
+    if (r.data.queued) { toast('Offline — request queued 📡, sends on reconnect'); return; }
     if (!r.data.ok) {
       S.outgoing = null; persist(); renderFriends();
       const msg = r.code === 404 ? 'They went offline — ask them to reload the page 👀'
@@ -1060,6 +1062,8 @@ function boot() {
   Net.on('linkup_expired', () => { S.outgoing = null; persist(); renderFriends(); toast('Live request expired ⏳'); });
   Net.on('session_end', (m) => endSession(m.expired ? 'Live Link Up ended ⏳' : 'They ended the hangout.', true));
   Net.on('chat', (m) => pushMsg(m.from, 'them', m.text));
+  Net.on('outbox', () => { if (!$('#debugModal').hidden) renderDebug(); });
+  window.addEventListener('online', () => { if (Net.live) Net.flush(); });
   Net.init({ name: myName(), dept: S.profile.dept }).then((live) => {
     if (live) {
       toast('⚡ Connected to live server — real people, real requests.'); refreshLivePins();

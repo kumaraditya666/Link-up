@@ -18,6 +18,34 @@ const gradFor = (id) => { let h = 0; for (const c of id) h = (h * 31 + c.charCod
 export const Net = {
   mode: 'mock', base: null, me: null, roster: [], paused: false,
   handlers: {}, es: null, hb: null, log: [],
+  outbox() { try { return JSON.parse(localStorage.getItem('linkup.live.outbox') || '[]'); } catch { return []; } },
+  queue(method, path, body) {
+    // offline-safe mutations: linkup / respond / chat / end wait for reconnect
+    const box = this.outbox();
+    box.push({ method, path, body, at: Date.now() });
+    try { localStorage.setItem('linkup.live.outbox', JSON.stringify(box.slice(-20))); } catch {}
+    this.note('queued offline: ' + path);
+    this.emit('outbox', this.outbox().length);
+  },
+  async flush() {
+    if (!this.live) return 0;
+    let box = this.outbox(), sent = 0;
+    const keep = [];
+    for (const m of box) {
+      try {
+        const r = await fetch(this.base + m.path, {
+          method: m.method, headers: { 'Content-Type': 'application/json', ...this.auth() },
+          body: m.body ? JSON.stringify(m.body) : undefined,
+        });
+        if (r.status === 401) { keep.push(m); continue; }
+        sent++;
+      } catch { keep.push(m); }
+    }
+    try { localStorage.setItem('linkup.live.outbox', JSON.stringify(keep)); } catch {}
+    if (sent) this.note(`flushed ${sent} queued`);
+    this.emit('outbox', keep.length);
+    return sent;
+  },
   note(msg) {
     const line = `${new Date().toLocaleTimeString('en-IN', { hour12: false })} ${msg}`;
     this.log.push(line);
@@ -83,10 +111,20 @@ export const Net = {
   },
   auth() { return { Authorization: 'Bearer ' + this.me.token }; },
   async api(method, path, body, retried = false) {
-    const r = await fetch(this.base + path, {
-      method, headers: { 'Content-Type': 'application/json', ...this.auth() },
-      body: body ? JSON.stringify(body) : undefined,
-    });
+    const QUEUEABLE = ['/api/linkup', '/api/linkup/respond', '/api/linkup/end', '/api/chat'];
+    let r;
+    try {
+      r = await fetch(this.base + path, {
+        method, headers: { 'Content-Type': 'application/json', ...this.auth() },
+        body: body ? JSON.stringify(body) : undefined,
+      });
+    } catch (e) {
+      if (method !== 'GET' && QUEUEABLE.some((p) => path === p)) {
+        this.queue(method, path, body);
+        return { code: 0, data: { queued: true } };
+      }
+      throw e;
+    }
     if (r.status === 401 && !retried && this.me) {
       this.note('401 stale cred -> rejoining');
       await this.rejoin(); // stale token (e.g. server restarted) -> heal + retry once
@@ -97,8 +135,7 @@ export const Net = {
   },
   connect() {
     if (this.es) { try { this.es.close(); } catch {} }
-    let errStreak = 0;
-    this.es = new EventSource(`${this.base}/api/live?token=${this.me.token}`);
+    let errStreak = 0;    this.es = new EventSource(`${this.base}/api/live?token=${this.me.token}`);
     this.es.onopen = () => { errStreak = 0; };
     this.es.onmessage = (e) => {
       errStreak = 0;
@@ -115,6 +152,7 @@ export const Net = {
     clearInterval(this.hb);
     this.hb = setInterval(() => this.beat(), 5000);
     this.beat();
+    this.flush();
   },
   async beat(pos) {
     if (!this.live || this.paused) return;

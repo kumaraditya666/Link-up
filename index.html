@@ -389,13 +389,14 @@
   </div>
 
   <div id="searchResults" hidden></div>
+  <div id="updateBar" hidden><span>✨ New version of Link Up is ready</span><button id="updateGo">Reload</button></div>
   <div id="toasts" aria-live="polite"></div>
 </div>
 
 <script type="importmap">{"imports":{"three":"./js/vendor/three.module.js"}}</script>
 <script type="module" src="./js/app.js"></script>
 <script>
-if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(()=>{})); navigator.serviceWorker.addEventListener('message', (e) => { if (e.data && e.data.linkup === 'go' && e.data.view) location.hash = '#/' + e.data.view; }); }
+if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').then((reg) => { reg.addEventListener('updatefound', () => { const w = reg.installing; if (w) w.addEventListener('statechange', () => { if (w.state === 'installed' && navigator.serviceWorker.controller) document.getElementById('updateBar').hidden = false; }); }); }).catch(()=>{})); navigator.serviceWorker.addEventListener('message', (e) => { if (e.data && e.data.linkup === 'go' && e.data.view) location.hash = '#/' + e.data.view; }); document.getElementById('updateGo')?.addEventListener('click', () => location.reload()); }
 window.addEventListener('load', () => setTimeout(() => document.getElementById('splash')?.classList.add('hide'), 900));
 document.getElementById('brandHome')?.addEventListener('click', () => location.hash = '#/map');
 </script>
