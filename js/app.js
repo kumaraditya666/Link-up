@@ -58,7 +58,22 @@ function updateNetPill() {
   pill.classList.toggle('live', Net.live);
   pill.classList.toggle('mock', !Net.live);
   $('#netPillTxt').textContent = Net.live ? 'LIVE' : 'MOCK';
-  pill.title = Net.live ? `Live server: ${Net.base} — click to reconnect` : 'Mock mode (no server) — click to retry';
+  pill.title = Net.live ? `Live server: ${Net.base} — tap for debug` : 'Mock mode — tap for debug';
+}
+function renderDebug() {
+  updateNetPill();
+  const lines = [
+    `build: 8 · mode: ${Net.mode.toUpperCase()} · ghost: ${S.ghost ? 'ON' : 'off'}`,
+    `server: ${Net.base || '(none)'}`,
+    `me: ${Net.me ? `${Net.me.name} (${Net.me.id})` : '(not joined)'}`,
+    `profile: ${myName()} · ${S.profile.dept}`,
+    `roster: ${Net.roster.length} other(s)`,
+    ...Net.roster.map((u) => `  - ${u.name} [${u.id}] ${u.bot ? '(bot)' : '(human)'} @${u.x},${u.y}`),
+    `session: ${S.session ? S.session.withName + ' ' + S.session.spot : '(none)'} · outgoing: ${S.outgoing ? S.outgoing.toId : '(none)'}`,
+    '--- event log ---',
+    ...Net.log.slice(-15),
+  ];
+  $('#debugBody').textContent = lines.join('\n');
 }
 function persist() {
   store.set('ghost', S.ghost); store.set('session', S.session);
@@ -956,10 +971,19 @@ function boot() {
   setInterval(() => {
     if (!Net.live && !document.hidden) Net.init({ name: myName(), dept: S.profile.dept }); // silent auto-retry
   }, 25000);
-  $('#netPill').onclick = () => {
-    updateNetPill();
-    if (!Net.live) { toast('Looking for live server…'); Net.init({ name: myName(), dept: S.profile.dept }); }
-    else toast(`Live via ${Net.base} · ${Net.roster.length} on campus`);
+  $('#netPill').onclick = () => { renderDebug(); $('#debugModal').hidden = false; };
+  $('#debugRetry').onclick = () => {
+    toast('Looking for live server…');
+    Net.init({ name: myName(), dept: S.profile.dept }).then(() => renderDebug());
+  };
+  $('#debugReset').onclick = () => {
+    try { localStorage.removeItem('linkup.live.cred'); } catch {}
+    toast('Identity cleared — rejoining…');
+    setTimeout(() => location.reload(), 600);
+  };
+  $('#debugCopy').onclick = () => {
+    const txt = $('#debugBody').textContent;
+    if (navigator.clipboard) navigator.clipboard.writeText(txt).then(() => toast('Debug copied 📋'));
   };
   applyProfileToUI();
   setGhost(S.ghost);

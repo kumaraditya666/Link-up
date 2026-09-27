@@ -94,7 +94,7 @@
       <p id="sideStats">8 friends live · 5 busy spots</p>
       <button id="sideLinkUp" class="btn-primary">Link Up ⚡</button>
     </div>
-    <div class="side-foot">Link Up — NSUT · build 7</div>
+    <div class="side-foot">Link Up — NSUT · build 8</div>
   </aside>
 
   <!-- ===== Main ===== -->
@@ -371,6 +371,15 @@
       <label class="switch row">👻 Ghost Mode <input type="checkbox" id="ghostToggle2" /><span></span></label>
       <div class="stat-row"><div><strong id="statFriends">8</strong><small>friends</small></div><div><strong id="statPlaces">3</strong><small>places</small></div><div><strong id="statEvents">2</strong><small>going</small></div></div>
       <button class="btn-primary big" id="profileLinkUp">Link Up with someone ⚡</button>
+    </div>
+  </div>
+
+  <!-- ===== Debug ===== -->
+  <div id="debugModal" class="modal" hidden role="dialog" aria-modal="true" aria-label="Connection debug">
+    <div class="modal-card wide"><button class="x" data-close="debugModal">✕</button>
+      <h2 style="letter-spacing:2px">🐞 DEBUG</h2>
+      <pre id="debugBody" style="text-align:left;background:#04060c;border:1px solid var(--line);border-radius:12px;padding:12px;font-size:11px;max-height:40vh;overflow-y:auto;white-space:pre-wrap"></pre>
+      <div class="row2"><button class="btn-decline" id="debugCopy">Copy</button><button class="btn-decline" id="debugReset">Reset ID</button><button class="btn-primary big" id="debugRetry" style="margin-top:0">Reconnect</button></div>
     </div>
   </div>
 

@@ -17,7 +17,13 @@ const gradFor = (id) => { let h = 0; for (const c of id) h = (h * 31 + c.charCod
 
 export const Net = {
   mode: 'mock', base: null, me: null, roster: [], paused: false,
-  handlers: {}, es: null, hb: null,
+  handlers: {}, es: null, hb: null, log: [],
+  note(msg) {
+    const line = `${new Date().toLocaleTimeString('en-IN', { hour12: false })} ${msg}`;
+    this.log.push(line);
+    if (this.log.length > 25) this.log.shift();
+    console.log('[linkup-net]', line);
+  },
   on(evt, fn) { (this.handlers[evt] = this.handlers[evt] || []).push(fn); },
   emit(evt, d) { for (const fn of this.handlers[evt] || []) { try { fn(d); } catch (e) { console.warn(e); } } },
   get live() { return this.mode === 'live'; },
@@ -28,6 +34,7 @@ export const Net = {
     return b;
   },
   async init(identity) {
+    this.note('init: trying ' + this.bases().join(','));
     for (const base of this.bases()) {
       try {
         const ctl = new AbortController();
@@ -36,14 +43,17 @@ export const Net = {
         clearTimeout(t);
         if (!r.ok) continue;
         this.base = base;
+        this.note('health OK @ ' + base);
         await this.join(identity);
+        this.note('joined as ' + this.me.name + ' (' + this.me.id + ')');
         this.connect();
         this.mode = 'live';
         this.emit('mode', 'live');
         return true;
-      } catch { /* try next */ }
+      } catch (e) { this.note('base failed: ' + base + ' (' + (e?.message || e) + ')'); }
     }
     this.mode = 'mock';
+    this.note('MOCK mode (no server reachable)');
     this.emit('mode', 'mock');
     return false;
   },
@@ -78,6 +88,7 @@ export const Net = {
       body: body ? JSON.stringify(body) : undefined,
     });
     if (r.status === 401 && !retried && this.me) {
+      this.note('401 stale cred -> rejoining');
       await this.rejoin(); // stale token (e.g. server restarted) -> heal + retry once
       return this.api(method, path, body, true);
     }
