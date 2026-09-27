@@ -435,6 +435,7 @@
   </div>
 
   <div id="searchResults" hidden></div>
+  <div id="fatal" hidden></div>
   <div id="updateBar" hidden><span>✨ New version of Link Up is ready</span><button id="updateGo">Reload</button></div>
   <div id="toasts" aria-live="polite"></div>
 </div>
@@ -445,6 +446,29 @@
 if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').then((reg) => { reg.addEventListener('updatefound', () => { const w = reg.installing; if (w) w.addEventListener('statechange', () => { if (w.state === 'installed' && navigator.serviceWorker.controller) document.getElementById('updateBar').hidden = false; }); }); }).catch(()=>{})); navigator.serviceWorker.addEventListener('message', (e) => { if (e.data && e.data.linkup === 'go' && e.data.view) location.hash = '#/' + e.data.view; }); document.getElementById('updateGo')?.addEventListener('click', () => location.reload()); }
 window.addEventListener('load', () => setTimeout(() => document.getElementById('splash')?.classList.add('hide'), 900));
 document.getElementById('brandHome')?.addEventListener('click', () => location.hash = '#/map');
+window.__linkup_errors = [];
+function __linkup_show_fatal(extra) {
+  const f = document.getElementById('fatal');
+  if (!f) return;
+  f.hidden = false;
+  f.innerHTML = '⚠️ Link Up hit an error:<code></code>';
+  f.querySelector('code').textContent = window.__linkup_errors.join('\n') + (extra ? '\n' + extra : '');
+}
+window.addEventListener('error', (e) => {
+  const msg = (e.message || 'unknown') + (e.lineno ? ` @${e.lineno}:${e.colno}` : '') + (e.filename ? ` in ${e.filename.split('/').pop()}` : '');
+  window.__linkup_errors.push(msg);
+  __linkup_show_fatal();
+});
+window.addEventListener('unhandledrejection', (e) => {
+  window.__linkup_errors.push('promise: ' + (e.reason?.message || e.reason));
+  __linkup_show_fatal();
+});
+setTimeout(() => {
+  if (!window.__linkup_booted && !window.__linkup_errors.length) {
+    const f = document.getElementById('fatal');
+    if (f) { f.hidden = false; f.innerHTML = '⚠️ App did not start (no errors caught). A module likely failed to load — press F12, open Console, screenshot the red text.<code>boot flag missing</code>'; }
+  }
+}, 6000);
 </script>
 </body>
 </html>

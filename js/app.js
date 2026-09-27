@@ -1401,5 +1401,10 @@ function boot() {
     f.dist = Math.max(40, f.dist + Math.floor(Math.random() * 41) - 20);
     if (S.view === 'map') renderSheet();
   }, 15000);
+  window.__linkup_booted = true;
 }
-boot();
+try { boot(); } catch (e) {
+  console.error(e);
+  const f = document.getElementById('fatal');
+  if (f) { f.hidden = false; f.innerHTML = '⚠️ Startup failed:<code></code>'; f.querySelector('code').textContent = String(e.stack || e); }
+}
