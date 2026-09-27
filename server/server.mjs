@@ -175,6 +175,13 @@ const server = http.createServer(async (req, res) => {
       res.on('error', () => {}); // dead sockets must never take the server down
       if (!streams.has(me.id)) streams.set(me.id, new Set());
       streams.get(me.id).add(res);
+      // flush requests that arrived while this client was reconnecting
+      for (const r of requests.values()) {
+        if (r.to === me.id && r.expires > now()) {
+          const from = users.get(r.from);
+          try { res.write(`data: ${JSON.stringify({ type: 'linkup_request', from: r.from, fromName: from ? from.name : 'Someone', spot: r.spot, durMin: r.durMin, expires: r.expires })}\n\n`); } catch {}
+        }
+      }
       const hb = setInterval(() => { try { res.write(':hb\n\n'); } catch {} }, 20000);
       req.on('close', () => { clearInterval(hb); try { streams.get(me.id)?.delete(res); } catch {} });
       return;
@@ -185,6 +192,7 @@ const server = http.createServer(async (req, res) => {
       const peer = users.get(to);
       if (!peer) return send(res, 404, { error: 'user offline' });
       if (sessions.get(me.id)) return send(res, 409, { error: 'already linked' });
+      if (sessions.get(to)) return send(res, 409, { error: 'busy' });
       const r = { id: rid('req-'), from: me.id, to, spot: String(spot || 'Near SAC').slice(0, 60), durMin: [30, 60, 120, 0].includes(+durMin) ? +durMin : 30, expires: now() + 120e3 };
       requests.set(r.id, r);
       if (peer.bot) {

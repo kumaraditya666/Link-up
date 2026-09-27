@@ -443,7 +443,19 @@ $('#sendLinkUp').onclick = async () => {
     S.outgoing = { toId: f.id, live: true };
     persist(); renderFriends();
     const r = await Net.sendLinkup(f.id, S.spotPick, S.durPick);
-    if (!r.data.ok) { S.outgoing = null; persist(); renderFriends(); toast(r.data.error === 'already linked' ? 'Finish your current hangout first 🤝' : 'They went offline — try again 👀'); return; }
+    if (!r.data.ok) {
+      S.outgoing = null; persist(); renderFriends();
+      const msg = r.code === 404 ? 'They went offline — ask them to reload the page 👀'
+        : r.data.error === 'busy' ? "They're linked up right now 🤝" : 'Finish your current hangout first 🤝';
+      toast(msg);
+      return;
+    }
+    if (r.data.delivered === false) {
+      S.outgoing = null; persist(); renderFriends();
+      toast('They’re reconnecting — ask them to reload, then retry 📡');
+      Net.beat();
+      return;
+    }
     toast(`⚡ Live Link Up sent to ${f.name.split(' ')[0]} — waiting for accept…`);
     return; // server SSE delivers accept / decline / expiry
   }
@@ -458,7 +470,7 @@ $('#sendLinkUp').onclick = async () => {
 };
 setTimeout(() => {
   if (S.session || !$('#incomingModal').hidden) return;
-  if (S.ghost) return;
+  if (S.ghost || Net.live) return; // mock demo only; live mode gets real requests
   showIncoming('kabir');
 }, 9000);
 
@@ -928,9 +940,9 @@ function boot() {
     if (S.view === 'nearby') renderNearby();
   });
   Net.on('linkup_request', (m) => {
-    if (S.ghost || S.session || !$('#incomingModal').hidden) return;
+    if (S.ghost || S.session) return;
     S.liveReq = { from: m.from, spot: m.spot, durMin: m.durMin };
-    showIncoming(m.from);
+    showIncoming(m.from); // live requests preempt any open mock popup
     toast(`⚡ ${(getPerson(m.from)?.name || 'Someone').split(' ')[0]} wants to link up (live).`);
   });
   Net.on('linkup_accept', (m) => { S.outgoing = null; startSession(m.from, m.spot, 0, 'outgoing', m.endsAt ?? null); });
