@@ -180,6 +180,22 @@ export const Net = {
     return (r.data && r.data.blocked) || [];
   },
   reportUser(id, reason) { return this.api('POST', '/api/report', { user: id, reason }); },
+  async adminAnnounce(text) {
+    const l = await this.api('POST', '/api/admin/login', { code: 'moksha27' }).catch(() => ({}));
+    const t = l.data && l.data.adminToken;
+    if (!t) return { code: 403, data: {} };
+    const r = await fetch(this.base + '/api/admin/announce', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-token': t },
+      body: JSON.stringify({ text }),
+    });
+    return { code: r.status, data: await r.json().catch(() => ({})) };
+  },
+  async fetchAnnounce() {
+    try {
+      const r = await this.api('GET', '/api/announce');
+      return Array.isArray(r.data) ? r.data : [];
+    } catch { return []; }
+  },
   async adminReports() {
     const l = await this.api('POST', '/api/admin/login', { code: 'moksha27' }).catch(() => ({}));
     const t = l.data && l.data.adminToken;

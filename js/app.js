@@ -884,8 +884,35 @@ function renderExplore() {
 }
 $('#startTrail').onclick = () => toast('First-Year Survival Trail started! First stop: SAC 🛸');
 
-/* ---------- Events (+ Moksha strip) ---------- */
+/* ---------- Events (+ Moksha strip + announcements) ---------- */
+function dayLabel(iso) {
+  const d = new Date(iso), now = new Date();
+  const k = (x) => x.getFullYear() + '-' + x.getMonth() + '-' + x.getDate();
+  if (k(d) === k(now)) return 'Today';
+  if (k(d) === k(new Date(now.getTime() + 864e5))) return 'Tomorrow';
+  return d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+function getAnn() { try { return JSON.parse(localStorage.getItem('linkup.announce') || '[]'); } catch { return []; } }
+function pushAnn(a) {
+  try {
+    const l = getAnn().filter((x) => x.id !== a.id);
+    l.unshift(a);
+    localStorage.setItem('linkup.announce', JSON.stringify(l.slice(0, 10)));
+  } catch {}
+}
+function renderAnnounce() {
+  const box = $('#announceBox');
+  if (!box) return;
+  const list = getAnn().slice(0, 3);
+  box.innerHTML = list.map((a) => `<div class="mk-strip" style="border-color:#22d3ee66"><div style="font-size:24px">📢</div>
+    <div class="grow"><strong>Organizers</strong><br><small class="muted">${a.text}</small></div></div>`).join('');
+}
 function renderEvents() {
+  renderAnnounce();
+  if (Net.live) Net.fetchAnnounce().then((l) => {
+    try { localStorage.setItem('linkup.announce', JSON.stringify(l.slice(0, 10))); } catch {}
+    if (S.view === 'events') renderAnnounce();
+  }).catch(() => {});
   const fs = festivalState('Moksha');
   const strip = $('#mokshaStrip');
   if (fs === 'live' || fs === 'upcoming') {
@@ -900,10 +927,14 @@ function renderEvents() {
 
   if (S.eventFilter === 'moksha') {
     const list = EventStore.ofFestival('Moksha').sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
+    let lastDay = '';
     $('#eventsList').innerHTML = list.map((ev) => {
+      const day = dayLabel(ev.start_time);
+      const head = day !== lastDay ? `<h2 style="grid-column:1/-1;margin:6px 2px 0">📅 ${day}</h2>` : '';
+      lastDay = day;
       const st = statusLabel(ev);
       const mappable = ev.verified && ev.campus_x != null;
-      return `<div class="card"><div class="row"><div style="font-size:28px">🎭</div>
+      return head + `<div class="card"><div class="row"><div style="font-size:28px">🎭</div>
         <div style="flex:1"><h3>${catEmoji(ev.category)} ${ev.name}</h3><small>${fmtRange(ev)} · 📍 ${mappable ? ev.venue_name : 'Venue TBA'}</small></div>
         <span class="pill ${st.cls}">${st.icon} ${st.text}</span></div>
         <p class="muted" style="margin:8px 0">${ev.description || ''}</p>
@@ -1230,6 +1261,19 @@ function boot() {
   });
   Net.on('group_end', (m) => { if (S.group && S.group.id === m.groupId) clearGroup(m.expired ? 'Group link up ended ⏳' : 'Host ended the group.'); });
   Net.on('group_chat', (m) => pushMsg('group:' + m.groupId, 'them', m.text));
+  Net.on('announce', (m) => {
+    if (m.announce) pushAnn(m.announce);
+    toast('📢 Organizers: ' + (m.announce?.text || 'new announcement').slice(0, 90));
+    if (S.view === 'events') renderEvents();
+  });
+  $('#announceForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const v = $('#announceIn').value.trim();
+    if (!v) return;
+    const r = await Net.adminAnnounce(v);
+    if (r.code === 200) { $('#announceIn').value = ''; toast('📢 Broadcast sent to all live users.'); }
+    else toast('Broadcast needs the live server.');
+  });
   Net.on('outbox', () => { if (!$('#debugModal').hidden) renderDebug(); });
   window.addEventListener('online', () => { if (Net.live) Net.flush(); });
   Net.init({ name: myName(), dept: S.profile.dept }).then((live) => {

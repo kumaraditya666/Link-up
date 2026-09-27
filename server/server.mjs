@@ -47,6 +47,7 @@ const pushSubs = new Map();   // userId -> push subscription
 const groups = new Map();     // id -> {id,spot,spotX,spotY,endsAt,host,members[],invites[]}
 const blocks = new Map();     // userId -> Set<blockedIds>
 const reports = [];           // [{id,from,about,reason,at}]
+const announcements = [];     // [{id,text,at,by}]
 let adminTokens = new Set();
 function isBlocked(a, b) {
   return blocks.get(a)?.has(b) || blocks.get(b)?.has(a);
@@ -212,7 +213,7 @@ const server = http.createServer(async (req, res) => {
     }
     /* authed routes */
     const me = auth(req, url);
-    const needAuth = ['/api/pos', '/api/linkup', '/api/linkup/respond', '/api/linkup/end', '/api/session', '/api/chat', '/api/push/subscribe', '/api/push/unsubscribe', '/api/block', '/api/blocks', '/api/report'].some((p) => url.pathname === p || url.pathname.startsWith('/api/chat')) || url.pathname.startsWith('/api/group') || url.pathname === '/api/groups/mine';
+    const needAuth = ['/api/pos', '/api/linkup', '/api/linkup/respond', '/api/linkup/end', '/api/session', '/api/chat', '/api/push/subscribe', '/api/push/unsubscribe', '/api/block', '/api/blocks', '/api/report', '/api/announce'].some((p) => url.pathname === p || url.pathname.startsWith('/api/chat')) || url.pathname.startsWith('/api/group') || url.pathname === '/api/groups/mine';
     if (needAuth && !me) return send(res, 401, { error: 'unauthorized' });
 
     if (req.method === 'POST' && url.pathname === '/api/pos') {
@@ -416,6 +417,17 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname.startsWith('/api/admin/') && !adminTokens.has(adm)) return send(res, 403, { error: 'organizers only' });
     if (req.method === 'GET' && url.pathname === '/api/admin/events') return send(res, 200, events);
     if (req.method === 'GET' && url.pathname === '/api/admin/reports') return send(res, 200, reports);
+    if (req.method === 'POST' && url.pathname === '/api/admin/announce') {
+      const { text } = await body(req);
+      const t = String(text || '').slice(0, 280);
+      if (!t) return send(res, 400, { error: 'empty' });
+      const a = { id: rid('ann-'), text: t, at: now(), by: 'Organizers' };
+      announcements.unshift(a);
+      if (announcements.length > 20) announcements.pop();
+      broadcast({ type: 'announce', announce: a });
+      return send(res, 200, { ok: true, announce: a });
+    }
+    if (req.method === 'GET' && url.pathname === '/api/announce') return send(res, 200, announcements);
     if (req.method === 'POST' && url.pathname === '/api/admin/events') {
       const ev = await body(req);
       if (!ev.name || !ev.start_time || !ev.end_time) return send(res, 400, { error: 'name/dates required' });

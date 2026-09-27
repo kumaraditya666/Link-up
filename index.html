@@ -94,7 +94,7 @@
       <p id="sideStats">8 friends live · 5 busy spots</p>
       <button id="sideLinkUp" class="btn-primary">Link Up ⚡</button>
     </div>
-    <div class="side-foot">Link Up — NSUT · build 16</div>
+    <div class="side-foot">Link Up — NSUT · build 17</div>
   </aside>
 
   <!-- ===== Main ===== -->
@@ -207,6 +207,7 @@
         <button class="mini-btn" id="adminBtn" title="Organizer tools">⚙ Manage</button></div>
       </div>
       <div id="mokshaStrip"></div>
+      <div id="announceBox"></div>
       <div id="eventsList" class="cards"></div>
     </section>
 
@@ -353,6 +354,7 @@
       <div id="adminPanel" hidden>
         <div class="row" style="display:flex;gap:8px;align-items:center"><h2 style="letter-spacing:2px;margin:0">MOKSHA EVENTS</h2><span style="flex:1"></span><button class="mini-btn" id="adminLogout">Lock</button></div>
         <p class="muted">Venues publish to the 3D map <strong>only</strong> when verified with coordinates. Unverified stays “Venue TBA”.</p>
+        <form id="announceForm" style="display:flex;gap:8px;margin-bottom:10px"><input id="announceIn" maxlength="280" placeholder="📢 Broadcast to all live users…" autocomplete="off" style="flex:1;background:#ffffff0c;border:1px solid var(--line);border-radius:12px;padding:10px 12px;color:#fff;outline:0" /><button class="btn-primary sm">Send</button></form>
         <div id="adminReports"></div>
         <div id="adminList"></div>
         <h3 style="margin:14px 0 6px">New / edit event</h3>
