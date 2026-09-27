@@ -26,6 +26,7 @@
  */
 import http from 'http';
 import crypto from 'crypto';
+import { appPublicKey, sendPush } from './push.js';
 
 const PORT = +(process.argv[2] || process.env.PORT || 8001);
 const ADMIN_CODE = 'moksha27';
@@ -42,6 +43,7 @@ const streams = new Map();    // userId -> Set<res>
 const requests = new Map();   // id -> {id,from,to,spot,durMin,expires}
 const sessions = new Map();   // userId -> {id,with,spot,endsAt}
 const chats = new Map();      // pairKey -> [{from,text,t}]
+const pushSubs = new Map();   // userId -> push subscription
 let adminTokens = new Set();
 
 /* ---------- campus flavor ---------- */
@@ -132,6 +134,15 @@ function auth(req, url) {
   return uid ? users.get(uid) : null;
 }
 function pairKey(a, b) { return [a, b].sort().join('|'); }
+/* push only when the user has NO live SSE stream (SSE covers live tabs) */
+function notifyPush(uid, payload) {
+  if (streams.get(uid)?.size) return;
+  const sub = pushSubs.get(uid);
+  if (!sub) return;
+  sendPush(sub, payload).then((r) => {
+    if (r.code === 404 || r.code === 410) pushSubs.delete(uid);
+  }).catch(() => {});
+}
 function endSession(uid, expired = false) {
   const s = sessions.get(uid);
   if (!s) return;
@@ -158,7 +169,7 @@ const server = http.createServer(async (req, res) => {
     }
     /* authed routes */
     const me = auth(req, url);
-    const needAuth = ['/api/pos', '/api/linkup', '/api/linkup/respond', '/api/linkup/end', '/api/session', '/api/chat'].some((p) => url.pathname === p || url.pathname.startsWith('/api/chat'));
+    const needAuth = ['/api/pos', '/api/linkup', '/api/linkup/respond', '/api/linkup/end', '/api/session', '/api/chat', '/api/push/subscribe', '/api/push/unsubscribe'].some((p) => url.pathname === p || url.pathname.startsWith('/api/chat'));
     if (needAuth && !me) return send(res, 401, { error: 'unauthorized' });
 
     if (req.method === 'POST' && url.pathname === '/api/pos') {
@@ -208,6 +219,7 @@ const server = http.createServer(async (req, res) => {
         return send(res, 200, { ok: true, pending: true });
       }
       const got = sendTo(to, { type: 'linkup_request', from: me.id, fromName: me.name, spot: r.spot, durMin: r.durMin, expires: r.expires });
+      if (!got) notifyPush(to, { title: `⚡ ${me.name} wants to link up`, body: r.spot, view: 'friends' });
       return send(res, 200, { ok: true, delivered: got });
     }
     if (req.method === 'POST' && url.pathname === '/api/linkup/respond') {
@@ -234,13 +246,22 @@ const server = http.createServer(async (req, res) => {
       const m = { from: me.id, text: t, t: new Date().toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' }) };
       chats.get(k).push(m);
       if (chats.get(k).length > 50) chats.get(k).shift();
-      sendTo(to, { type: 'chat', ...m, fromName: me.name });
+      const live = sendTo(to, { type: 'chat', ...m, fromName: me.name });
+      if (!live) notifyPush(to, { title: me.name, body: t, view: 'messages' });
       return send(res, 200, { ok: true });
     }
     if (req.method === 'GET' && url.pathname === '/api/chat') {
       const withId = url.searchParams.get('with');
       return send(res, 200, { messages: chats.get(pairKey(me.id, withId)) || [] });
     }
+    if (req.method === 'GET' && url.pathname === '/api/push/key') return send(res, 200, { publicKey: appPublicKey() });
+    if (req.method === 'POST' && url.pathname === '/api/push/subscribe') {
+      const { sub } = await body(req);
+      if (!sub?.endpoint || !sub?.keys) return send(res, 400, { error: 'bad subscription' });
+      pushSubs.set(me.id, sub);
+      return send(res, 200, { ok: true });
+    }
+    if (req.method === 'POST' && url.pathname === '/api/push/unsubscribe') { pushSubs.delete(me.id); return send(res, 200, { ok: true }); }
     /* admin */
     if (req.method === 'POST' && url.pathname === '/api/admin/login') {
       const { code } = await body(req);

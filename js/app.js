@@ -641,8 +641,8 @@ function setGhost(v) {
 }
 $('#ghostToggle').onchange = (e) => setGhost(e.target.checked);
 $('#ghostToggle2').onchange = (e) => setGhost(e.target.checked);
-$('#ntLinkup').onchange = (e) => { const p = Notify.prefs; p.linkup = e.target.checked; Notify.setPrefs(p); if (p.linkup) Notify.ensure(); };
-$('#ntMoksha').onchange = (e) => { const p = Notify.prefs; p.moksha = e.target.checked; Notify.setPrefs(p); if (p.moksha) Notify.ensure(); };
+$('#ntLinkup').onchange = (e) => { const p = Notify.prefs; p.linkup = e.target.checked; Notify.setPrefs(p); if (p.linkup) Notify.ensure().then((ok) => ok && Net.subscribePush()); };
+$('#ntMoksha').onchange = (e) => { const p = Notify.prefs; p.moksha = e.target.checked; Notify.setPrefs(p); if (p.moksha) Notify.ensure().then((ok) => ok && Net.subscribePush()); };
 $('#ghostToggleTop').onclick = () => setGhost(!S.ghost);
 
 /* ---------- Places ---------- */
@@ -1016,7 +1016,10 @@ function boot() {
   Net.on('session_end', (m) => endSession(m.expired ? 'Live Link Up ended ⏳' : 'They ended the hangout.', true));
   Net.on('chat', (m) => pushMsg(m.from, 'them', m.text));
   Net.init({ name: myName(), dept: S.profile.dept }).then((live) => {
-    if (live) { toast('⚡ Connected to live server — real people, real requests.'); refreshLivePins(); }
+    if (live) {
+      toast('⚡ Connected to live server — real people, real requests.'); refreshLivePins();
+      if (Notify.granted()) Net.subscribePush();
+    }
   });
   setInterval(() => {
     if (!Net.live && !document.hidden) Net.init({ name: myName(), dept: S.profile.dept }); // silent auto-retry

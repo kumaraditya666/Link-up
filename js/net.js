@@ -136,6 +136,23 @@ export const Net = {
   respondLinkup(from, accept, durMin) { return this.api('POST', '/api/linkup/respond', { from, accept, durMin }); },
   endLink() { return this.api('POST', '/api/linkup/end', {}); },
   sendChat(to, text) { return this.api('POST', '/api/chat', { to, text }); },
+  async subscribePush() {
+    if (!this.live) return false;
+    try {
+      if (!('PushManager' in window) || !navigator.serviceWorker) return false;
+      const { publicKey } = await (await fetch(this.base + '/api/push/key')).json();
+      const reg = await navigator.serviceWorker.ready;
+      let sub = await reg.pushManager.getSubscription();
+      if (!sub) {
+        const raw = atob(publicKey.replace(/-/g, '+').replace(/_/g, '/'));
+        const key = Uint8Array.from(raw, (c) => c.charCodeAt(0));
+        sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
+      }
+      await this.api('POST', '/api/push/subscribe', { sub: sub.toJSON() });
+      this.note('push subscribed');
+      return true;
+    } catch (e) { this.note('push subscribe failed'); return false; }
+  },
   async history(withId) {
     const { data } = await this.api('GET', `/api/chat?with=${encodeURIComponent(withId)}`);
     return ((data && data.messages) || []).map((m) => ({ from: m.from === this.me.id ? 'me' : 'them', text: m.text, t: m.t }));
