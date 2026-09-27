@@ -36,9 +36,9 @@ function inPoly(x, y) {
 }
 
 const MODES = {
-  day: { sky: 0x9ec7ee, fog: 0xcfe2f5, ground: 0x79b86a, groundOut: 0x5da055, sun: 0xfff4d6, sunI: 2.6, hemiSky: 0xbdd7f2, hemiGnd: 0x6a8a5a, hemiI: 0.9, glow: 0.1, beams: 0, stars: false, road: 0x4b5261 },
-  evening: { sky: 0x35306b, fog: 0x6b5580, ground: 0x4d8a4e, groundOut: 0x356636, sun: 0xffb37a, sunI: 1.7, hemiSky: 0x8a7ab8, hemiGnd: 0x3a4a3a, hemiI: 0.55, glow: 1.1, beams: 0.35, stars: false, road: 0x333845 },
-  night: { sky: 0x05070f, fog: 0x0a1226, ground: 0x22402a, groundOut: 0x16281b, sun: 0xb9ccff, sunI: 0.4, hemiSky: 0x2a3a5e, hemiGnd: 0x101a14, hemiI: 0.35, glow: 1.7, beams: 0.6, stars: true, road: 0x20242e },
+  day: { sky: 0xcfd6dd, fog: 0xd8d2c4, tintOut: 0xffffff, tintIn: 0xffffff, sun: 0xfff1dc, sunI: 2.5, hemiSky: 0xbfd4e6, hemiGnd: 0x9a8f7a, hemiI: 0.9, glow: 0.08, beams: 0, stars: false },
+  evening: { sky: 0x38324e, fog: 0x9a7f72, tintOut: 0xd8c2ae, tintIn: 0xcfae90, sun: 0xffb37a, sunI: 1.6, hemiSky: 0x7a6f9a, hemiGnd: 0x4a423a, hemiI: 0.55, glow: 1.1, beams: 0.35, stars: false },
+  night: { sky: 0x05070f, fog: 0x0a1226, tintOut: 0x5a6a8a, tintIn: 0x4a5a76, sun: 0xb9ccff, sunI: 0.4, hemiSky: 0x2a3a5e, hemiGnd: 0x101a14, hemiI: 0.35, glow: 1.7, beams: 0.6, stars: true },
 };
 const SUNPOS = { day: [600, 950, 350], evening: [-850, 260, 250], night: [450, 750, -350] };
 
@@ -84,7 +84,7 @@ const FOOT = [
   [632, 405, 28, 24], [400, 490, 40, 30], [550, 238, 40, 30], [300, 358, 22, 22],  [380, 205, 16, 14], [510, 215, 16, 14],
 ];
 const HEIGHTS = {
-  admin: 17, 'sac-lib': 15, apj: 16, smart: 12, canteen: 9, gym: 12,
+  admin: 17, 'sac-lib': 15, apj: 16, smart: 12, canteen: 9,
   'boys-a': 19, 'boys-b': 19, girls: 16, design: 14, 'north-gate': 16, 'main-gate': 16,
   safal: 6, stationary: 6, 'academic-a': 15, 'academic-b': 15, nescii2: 3, nescii1: 3, gym: 7,
   guest: 9, flag: 22, 'moksha-ground': 4, 'amul-ground': 4, sports: 6,
@@ -97,7 +97,7 @@ export function createMap(canvas, opts = {}) {
   const friendsRef = { list: FRIENDS };
   const state = {
     layer: 'friends', ghost: false, mokshaFilter: false, selected: null,
-    t: 0, w: 0, h: 0, dpr: 1, timeOfDay: 'evening',
+    t: 0, w: 0, h: 0, dpr: 1, timeOfDay: 'day',
     highlightId: null, route: null, mokshaEventId: null,
     cam: null,
   };
@@ -117,14 +117,14 @@ export function createMap(canvas, opts = {}) {
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(MODES.evening.sky);
-  scene.fog = new THREE.Fog(MODES.evening.fog, 1300, 3600);
+  scene.background = new THREE.Color(MODES.day.sky);
+  scene.fog = new THREE.Fog(MODES.day.fog, 1400, 4200);
   const camera = new THREE.PerspectiveCamera(48, 1, 2, 8000);
 
-  const hemi = new THREE.HemisphereLight(0x8a7ab8, 0x3a4a3a, 0.55);
+  const hemi = new THREE.HemisphereLight(0xbfd4e6, 0x9a8f7a, 0.9);
   scene.add(hemi);
-  const sun = new THREE.DirectionalLight(0xffb37a, 1.7);
-  sun.position.set(-850, 260, 250);
+  const sun = new THREE.DirectionalLight(0xfff1dc, 2.5);
+  sun.position.set(600, 950, 350);
   sun.castShadow = true;
   sun.shadow.mapSize.set(window.innerWidth < 700 ? 1024 : 2048, window.innerWidth < 700 ? 1024 : 2048);
   Object.assign(sun.shadow.camera, { left: -700, right: 700, top: 700, bottom: -700, near: 10, far: 4000 });
@@ -168,15 +168,48 @@ export function createMap(canvas, opts = {}) {
     m.rotation.x = -Math.PI / 2; m.position.y = y; m.receiveShadow = true;
     return m;
   }
+  /* procedural ground textures (canvas-baked, zero assets): soft blotches + speckle */
+  function groundTexture(base, blobs, seed, repeat) {
+    const c = document.createElement('canvas'); c.width = c.height = 256;
+    const g = c.getContext('2d');
+    g.fillStyle = base; g.fillRect(0, 0, 256, 256);
+    const rng = mulberry(seed);
+    for (let i = 0; i < 90; i++) {
+      const r = 8 + rng() * 30;
+      g.fillStyle = blobs[Math.floor(rng() * blobs.length)];
+      g.globalAlpha = 0.05 + rng() * 0.08;
+      g.beginPath();
+      g.ellipse(rng() * 256, rng() * 256, r, r * (0.5 + rng() * 0.5), rng() * 3, 0, TAU);
+      g.fill();
+    }
+    g.globalAlpha = 0.05;
+    for (let i = 0; i < 800; i++) { g.fillStyle = rng() > 0.5 ? '#000' : '#fff'; g.fillRect(rng() * 256, rng() * 256, 1.5, 1.5); }
+    g.globalAlpha = 1;
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.repeat.set(repeat, repeat);
+    return t;
+  }
+  function segDist2(px, py, ax, ay, bx, by) {
+    const dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy || 1;
+    const t = clamp(((px - ax) * dx + (py - ay) * dy) / L2, 0, 1);
+    return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+  }
   {
-    const P = MODES.evening;
-    const outer = flat(5200, 5200, P.groundOut, -0.6); scene.add(outer);
+    const P = MODES.day;
+    const terrainTex = groundTexture('#D8D2C4', ['#CFC9BA', '#DDD8CC', '#C4B99B', '#E4DED2'], 5, 32);
+    const lawnTex = groundTexture('#7cab5e', ['#6b9a4e', '#86b366', '#5f8f47', '#8fae62'], 9, 0.012);
+    const outer = flat(5200, 5200, 0xffffff, -0.6);
+    outer.material.map = terrainTex; outer.material.color.set(P.tintOut);
+    scene.add(outer);
     // campus ground follows the boundary polygon (urban grey-green outside)
     const shape = new THREE.Shape();
     BOUNDARY.forEach(([x, y], i) => { const vx = GX(x), vz = GZ(y); if (i === 0) shape.moveTo(vx, -vz); else shape.lineTo(vx, -vz); });
     const campusGeo = new THREE.ShapeGeometry(shape);
     campusGeo.rotateX(-Math.PI / 2);
-    const campus = new THREE.Mesh(campusGeo, new THREE.MeshStandardMaterial({ color: P.ground, roughness: 1 }));
+    const campus = new THREE.Mesh(campusGeo, new THREE.MeshStandardMaterial({ map: lawnTex, roughness: 1 }));
+    campus.material.color.set(P.tintIn);
     campus.position.y = 0; campus.receiveShadow = true;
     // ShapeGeometry lies in XY; after rotateX(-90°), shape Y maps to -Z. We built with -vz so it lands right.
     scene.add(campus);
@@ -210,17 +243,70 @@ export function createMap(canvas, opts = {}) {
     if (hedge.instanceColor) hedge.instanceColor.needsUpdate = true;
     hedge.castShadow = true;
     scene.add(hedge);
-    for (const pz of PLAZAS) {
-      const q = flat(pz.w, pz.d, 0x9aa0ac, 0.25); q.position.set(GX(pz.x), 0.25, GZ(pz.y)); scene.add(q);
+    // surrounding city: low-detail blocks + scrub trees so campus sits in a real place
+    {
+      const rng = mulberry(4242);
+      const spots = [];
+      let guard = 0;
+      while (spots.length < 130 && guard++ < 4000) {
+        const a = rng() * TAU, rr = 640 + rng() * 480;
+        const x = 470 + Math.cos(a) * rr, y = 345 + Math.sin(a) * rr * 0.8;
+        if (x < -600 || x > 1600 || y < -500 || y > 1200) continue;
+        if (inPoly(x, y)) continue;
+        let nearEdge = false;
+        for (let i = 0; i < BOUNDARY.length; i++) {
+          const [ax, ay] = BOUNDARY[i], [bx, by] = BOUNDARY[(i + 1) % BOUNDARY.length];
+          if (segDist2(x, y, ax, ay, bx, by) < 55) { nearEdge = true; break; }
+        }
+        if (nearEdge) continue;
+        spots.push({ x, y, w: 22 + rng() * 42, h: 8 + rng() * 26, d: 22 + rng() * 42, r: rng() * 0.6 - 0.3, tone: rng() });
+      }
+      const cityGeo = new THREE.BoxGeometry(1, 1, 1);
+      cityGeo.translate(0, 0.5, 0);
+      const city = new THREE.InstancedMesh(cityGeo, new THREE.MeshStandardMaterial({ roughness: 1 }), spots.length);
+      const cityCols = [0xcfc8b8, 0xbdb5a4, 0xd8d2c4, 0xa8a094, 0xc4bcac];
+      const d = new THREE.Object3D(), col = new THREE.Color();
+      const treeSpots = [];
+      spots.forEach((s, i) => {
+        d.position.set(GX(s.x), 0, GZ(s.y)); d.rotation.y = s.r; d.scale.set(s.w, s.h, s.d); d.updateMatrix();
+        city.setMatrixAt(i, d.matrix);
+        city.setColorAt(i, col.set(cityCols[Math.floor(s.tone * cityCols.length)]));
+        if (s.tone > 0.45) treeSpots.push({ x: s.x + s.w * 0.9, y: s.y, r: 5 + s.tone * 3 });
+      });
+      city.instanceMatrix.needsUpdate = true;
+      if (city.instanceColor) city.instanceColor.needsUpdate = true;
+      scene.add(city);
+      // distant scrub trees (canopy blobs, no trunks at this LOD)
+      const scrub = new THREE.InstancedMesh(
+        new THREE.IcosahedronGeometry(1, 0),
+        new THREE.MeshStandardMaterial({ roughness: 1 }),
+        treeSpots.length,
+      );
+      treeSpots.forEach((t, i) => {
+        d.position.set(GX(t.x), t.r * 0.5, GZ(t.y)); d.rotation.y = 0; d.scale.set(t.r, t.r * 0.7, t.r); d.updateMatrix();
+        scrub.setMatrixAt(i, d.matrix);
+        scrub.setColorAt(i, col.set(i % 2 ? 0x5d7a44 : 0x6b8a4e));
+      });
+      scrub.instanceMatrix.needsUpdate = true;
+      if (scrub.instanceColor) scrub.instanceColor.needsUpdate = true;
+      scene.add(scrub);
+      // outer arterials: west highway + south road
+      for (const pts of [[[-140, -200], [-140, 900]], [[-200, 860], [1200, 860]]]) {
+        const m = new THREE.Mesh(ribbonGeo(pts, 18, 0.1), new THREE.MeshStandardMaterial({ color: 0x77716a, roughness: 1 }));
+        m.receiveShadow = true; scene.add(m);
+      }
     }
-    const pk = flat(PARKING.w, PARKING.d, 0x3a3f4c, 0.25); pk.position.set(GX(PARKING.x), 0.25, GZ(PARKING.y)); scene.add(pk);
+    for (const pz of PLAZAS) {
+      const q = flat(pz.w, pz.d, 0xb9b3a4, 0.25); q.position.set(GX(pz.x), 0.25, GZ(pz.y)); scene.add(q);
+    }
+    const pk = flat(PARKING.w, PARKING.d, 0x4a4f5c, 0.25); pk.position.set(GX(PARKING.x), 0.25, GZ(PARKING.y)); scene.add(pk);
     for (const r of ROADS) {
-      const curb = new THREE.Mesh(ribbonGeo(r.pts, r.w + 3, 0.15), new THREE.MeshStandardMaterial({ color: 0x8d93a0, roughness: 1 }));
+      const curb = new THREE.Mesh(ribbonGeo(r.pts, r.w + 3, 0.15), new THREE.MeshStandardMaterial({ color: 0xcfc9ba, roughness: 1 }));
       curb.receiveShadow = true; scene.add(curb);
-      const top = new THREE.Mesh(ribbonGeo(r.pts, r.w, 0.3), new THREE.MeshStandardMaterial({ color: r.kind === 'path' ? 0xa89a72 : P.road, roughness: 1 }));
+      const top = new THREE.Mesh(ribbonGeo(r.pts, r.w, 0.3), new THREE.MeshStandardMaterial({ color: r.kind === 'path' ? 0xc9bd9f : 0x6b7280, roughness: 1 }));
       top.receiveShadow = true; scene.add(top);
       if (r.kind === 'road') {
-        const dashMat = new THREE.MeshBasicMaterial({ color: 0xe8d9a0 });
+        const dashMat = new THREE.MeshBasicMaterial({ color: 0xf5f0dc });
         for (let i = 0; i < r.pts.length - 1; i++) {
           const [ax, ay] = r.pts[i], [bx, by] = r.pts[i + 1];
           const L = Math.hypot(bx - ax, by - ay);
@@ -389,8 +475,7 @@ export function createMap(canvas, opts = {}) {
       spots.push({ x, y, h: 8 + rng() * 6, r: 5 + rng() * 3, tone: rng(), rot: rng() * TAU });
     }
     const trunkG = new THREE.CylinderGeometry(0.7, 1.0, 5, 6);
-    const trunkM = new THREE.MeshStandardMaterial({ color: 0x6b4a2f, roughness: 1 });
-    const trunks = new THREE.InstancedMesh(trunkG, trunkM, spots.length);
+    const trunkM = new THREE.MeshStandardMaterial({ color: 0x6b4a2f, roughness: 1 });    const trunks = new THREE.InstancedMesh(trunkG, trunkM, spots.length);
     const canG = new THREE.IcosahedronGeometry(1, 1);
     const canM = new THREE.MeshStandardMaterial({ roughness: 0.95 });
     const cans = new THREE.InstancedMesh(canG, canM, spots.length);
@@ -712,8 +797,8 @@ export function createMap(canvas, opts = {}) {
   function applyMode() {
     const P = MODES[state.timeOfDay];
     scene.background.set(P.sky); scene.fog.color.set(P.fog);
-    scene.userData.ground[0].material.color.set(P.groundOut);
-    scene.userData.ground[1].material.color.set(P.ground);
+    scene.userData.ground[0].material.color.set(P.tintOut);
+    scene.userData.ground[1].material.color.set(P.tintIn);
     sun.color.set(P.sun); sun.intensity = P.sunI;
     sun.position.set(...SUNPOS[state.timeOfDay]);
     hemi.color.set(P.hemiSky); hemi.groundColor.set(P.hemiGnd); hemi.intensity = P.hemiI;

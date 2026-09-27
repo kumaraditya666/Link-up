@@ -1,2 +1,4 @@
 # local secrets (never commit)
 server/.vapid.json
+
+.vercel
