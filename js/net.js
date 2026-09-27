@@ -18,6 +18,7 @@ const gradFor = (id) => { let h = 0; for (const c of id) h = (h * 31 + c.charCod
 export const Net = {
   mode: 'mock', base: null, me: null, roster: [], paused: false,
   handlers: {}, es: null, hb: null, log: [],
+  mePos: { x: 350, y: 400 },
   outbox() { try { return JSON.parse(localStorage.getItem('linkup.live.outbox') || '[]'); } catch { return []; } },
   queue(method, path, body) {
     // offline-safe mutations: linkup / respond / chat / end wait for reconnect
@@ -158,7 +159,7 @@ export const Net = {
   },
   async beat(pos) {
     if (!this.live || this.paused) return;
-    try { await this.api('POST', '/api/pos', pos || { x: 350, y: 400 }); } catch {}
+    try { await this.api('POST', '/api/pos', pos || { x: this.mePos.x, y: this.mePos.y }); } catch {}
   },
   setPaused(p) { this.paused = p; if (!p) this.beat(); },
   /* people shaped like local friends for the map + lists */
@@ -166,7 +167,7 @@ export const Net = {
     return this.roster.map((u) => ({
       id: u.id, name: u.name, short: u.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase(),
       dept: u.dept || '', grad: gradFor(u.id), spot: u.spot || 'On campus',
-      dist: Math.round(Math.hypot(u.x - 350, u.y - 400) * 0.9),
+      dist: Math.round(Math.hypot(u.x - Net.mePos.x, u.y - Net.mePos.y) * 0.9),
       online: true, x: u.x, y: u.y, vibe: u.bot ? 'Wandering campus 🤖' : 'Live on Link Up ⚡',
       live: true, bot: !!u.bot,
     }));

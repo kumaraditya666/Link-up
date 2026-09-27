@@ -849,6 +849,7 @@ export function createMap(canvas, opts = {}) {
       sp.scale.set(s, s, 1);
     });
     meGroup.visible = true;
+    meGroup.position.set(GX(ME_POS.x), 0, GZ(ME_POS.y));
     renderer.render(scene, camera);
     updateLabels();
   }
@@ -860,6 +861,7 @@ export function createMap(canvas, opts = {}) {
   function locate() { flyTo(ME_POS.x, ME_POS.y, { dist: 620 }); }
   function toggleTilt() { const n = goal.pitch > 0.75 ? 0.42 : 1.08; goal.pitch = n; return n; }
   function focus(x, y, z = 1.5) { flyTo(x, y, { dist: Math.max(380, 900 / z) }); }
+  function setMePos(x, y) { ME_POS.x = x; ME_POS.y = y; }
   function rotateBy(a) { fly = null; goal.yaw += a; }
   function cycleTimeOfDay() {
     state.timeOfDay = state.timeOfDay === 'day' ? 'evening' : state.timeOfDay === 'evening' ? 'night' : 'day';
@@ -877,7 +879,7 @@ export function createMap(canvas, opts = {}) {
   refreshMoksha();
   draw();
   return {
-    state, friendsRef, setLayer, setGhost, focus,
+    state, friendsRef, setLayer, setGhost, focus, setMePos,
     zoomIn: () => zoomBy(0.8), zoomOut: () => zoomBy(1.25), locate, toggleTilt, rotateBy,
     flyTo, cycleTimeOfDay,
     setMokshaFilter(v) { state.mokshaFilter = v; },
@@ -891,7 +893,7 @@ export function createMap(canvas, opts = {}) {
   function stubApi() {
     const noop = () => {};
     return {
-      state, friendsRef, setLayer: noop, setGhost: noop, focus: noop,
+      state, friendsRef, setLayer: noop, setGhost: noop, focus: noop, setMePos: noop,
       zoomIn: noop, zoomOut: noop, locate: noop, toggleTilt: () => 1, rotateBy: noop,
       flyTo: noop, cycleTimeOfDay: () => state.timeOfDay,
       setMokshaFilter: noop, setHighlight: noop, focusMoksha: noop,

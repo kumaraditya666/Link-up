@@ -2,6 +2,7 @@
 import { ME, SPOTS, FRIENDS, PLACES, EVENTS, TRAILS, THREADS, QUICK, BUILDINGS } from './data.js';
 import { createMap } from './map.js';
 import { route, spotXY, sessionStats } from './route.js';
+import { Geo } from './geo.js';
 import { Notify, dueReminders } from './notify.js';
 import { Social } from './social.js';
 import { Net } from './net.js';
@@ -47,6 +48,7 @@ const S = {
   attendMine: store.get('attendMine', []),
   group: null, groupInvites: [], groupNames: {}, groupSpot: 'Moksha Ground', groupDur: 60,
   sessionRoute: false, groupRoute: false,
+  gpsPref: store.get('gps', false),
 };
 const myName = () => (S.profile.name || 'Aditya').slice(0, 24);
 function applyProfileToUI() {
@@ -69,7 +71,7 @@ function updateNetPill() {
 function renderDebug() {
   updateNetPill();
   const lines = [
-    `build: 18 · mode: ${Net.mode.toUpperCase()} · ghost: ${S.ghost ? 'ON' : 'off'}`,
+    `build: 24 · mode: ${Net.mode.toUpperCase()} · ghost: ${S.ghost ? 'ON' : 'off'}`,
     `server: ${Net.base || '(none)'}`,
     `me: ${Net.me ? `${Net.me.name} (${Net.me.id})` : '(not joined)'}`,
     `profile: ${myName()} · ${S.profile.dept}`,
@@ -77,6 +79,7 @@ function renderDebug() {
     ...Net.roster.map((u) => `  - ${u.name} [${u.id}] ${u.bot ? '(bot)' : '(human)'} @${u.x},${u.y}`),
     `session: ${S.session ? S.session.withName + ' ' + S.session.spot : '(none)'} · outgoing: ${S.outgoing ? S.outgoing.toId : '(none)'}`,
     `outbox: ${Net.outbox().length} queued`,
+    `gps: ${Geo.watching ? `ON ${Geo.last ? `@${Geo.last.x},${Geo.last.y} ±${Geo.last.accuracy}m` : ''}` : 'off'}${S.ghost ? ' (ghosted)' : ''}`,
     '--- event log ---',
     ...Net.log.slice(-15),
   ];
@@ -872,6 +875,8 @@ function setGhost(v) {
   $('#ghostStateTop').textContent = v ? 'On' : 'Off';
   map.setGhost(v);
   Net.setPaused(v);
+  if (v) { Geo.stop(); updateGpsNote(); }
+  else if (S.gpsPref) { Geo.start(); updateGpsNote(); }
   persist(); renderNearby(); renderSheet();
   toast(v ? '👻 Ghost Mode on — you’re hidden.' : '⚡ You’re visible — friends can link up!');
 }
@@ -879,6 +884,7 @@ $('#ghostToggle').onchange = (e) => setGhost(e.target.checked);
 $('#ghostToggle2').onchange = (e) => setGhost(e.target.checked);
 $('#ntLinkup').onchange = (e) => { const p = Notify.prefs; p.linkup = e.target.checked; Notify.setPrefs(p); if (p.linkup) Notify.ensure().then((ok) => ok && Net.subscribePush()); };
 $('#ntMoksha').onchange = (e) => { const p = Notify.prefs; p.moksha = e.target.checked; Notify.setPrefs(p); if (p.moksha) Notify.ensure().then((ok) => ok && Net.subscribePush()); };
+$('#ntGps').onchange = (e) => setGPS(e.target.checked);
 $('#ghostToggleTop').onclick = () => setGhost(!S.ghost);
 
 /* ---------- Places ---------- */
@@ -1283,6 +1289,43 @@ $('#wipeData').onclick = () => {
   try { localStorage.clear(); } catch {}
   location.reload();
 };
+/* ---------- GPS live location ---------- */
+function syncGpsToggle() { const t = $('#ntGps'); if (t) t.checked = S.gpsPref; updateGpsNote(); }
+function updateGpsNote() {
+  const el = $('#gpsStatus');
+  if (!el) return;
+  el.textContent = !Geo.supported() ? 'GPS unavailable here (needs HTTPS/localhost)'
+    : S.ghost ? 'Paused — Ghost Mode hides you 👻'
+    : Geo.watching ? `Live 📍 ${Geo.last ? `±${Geo.last.accuracy}m${Geo.last.offCampus ? ' · off campus' : ''}` : ''}`
+    : S.gpsPref ? 'Starting…' : 'Off — your dot stays pinned';
+}
+function applyFix(p) {
+  map.setMePos(p.x, p.y);
+  Net.mePos = { x: p.x, y: p.y };
+  if (Net.live && !S.ghost) Net.beat({ x: p.x, y: p.y });
+  refreshLivePins();
+  if (S.view === 'map') renderSheet();
+  if (S.view === 'nearby') renderNearby();
+  updateGpsNote();
+}
+Geo.onUpdate(applyFix);
+async function setGPS(on, silent) {
+  S.gpsPref = on;
+  store.set('gps', on);
+  syncGpsToggle();
+  if (!on) { Geo.stop(); updateGpsNote(); if (!silent) toast('📍 Live location off'); return; }
+  if (S.ghost) { toast('Turn Ghost off first 👻'); S.gpsPref = false; store.set('gps', false); syncGpsToggle(); return; }
+  if (!Geo.supported()) { S.gpsPref = false; store.set('gps', false); syncGpsToggle(); toast('GPS needs HTTPS or localhost + permission 📍'); return; }
+  try {
+    applyFix(await Geo.fix());
+    Geo.start();
+    updateGpsNote();
+    if (!silent) toast(`📍 Live location on — walk the map!${Geo.last.offCampus ? ' (you look off-campus)' : ''}`);
+  } catch {
+    S.gpsPref = false; store.set('gps', false); syncGpsToggle();
+    if (!silent) toast('Location blocked — allow it in the browser address bar 📍');
+  }
+}
 /* ---------- Profile ---------- */
 function openProfile() {
   $('#statFriends').textContent = FRIENDS.length;
@@ -1293,6 +1336,7 @@ function openProfile() {
   $('#profileBioIn').value = S.profile.bio || '';
   $('#ntLinkup').checked = Notify.prefs.linkup;
   $('#ntMoksha').checked = Notify.prefs.moksha;
+  syncGpsToggle();
   $('#profileNote').textContent = Net.live ? 'Name change rejoins the live server (page reloads).' : '';
   $('#storageInfo').textContent = `Local data: ~${storageKB()} KB on this device`;
   const earned = Social.earnedBadges(TRAILS, S.visited, Social.linkupCount());
@@ -1408,6 +1452,7 @@ function boot() {
   });
   Net.on('outbox', () => { if (!$('#debugModal').hidden) renderDebug(); });
   window.addEventListener('online', () => { if (Net.live) Net.flush(); });
+  if (S.gpsPref && !S.ghost) setGPS(true, true);
   Net.init({ name: myName(), dept: S.profile.dept }).then((live) => {
     if (live) {
       toast('⚡ Connected to live server — real people, real requests.'); refreshLivePins();
