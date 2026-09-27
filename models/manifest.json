@@ -2,73 +2,97 @@
   "admin": {
     "high": "models/admin-high.glb",
     "low": "models/admin-low.glb",
-    "x": 500,
-    "y": 140
+    "x": 345,
+    "y": 355
   },
   "library": {
     "high": "models/library-high.glb",
     "low": "models/library-low.glb",
-    "x": 400,
-    "y": 210
+    "x": 550,
+    "y": 395
   },
   "apj": {
     "high": "models/apj-high.glb",
     "low": "models/apj-low.glb",
-    "x": 620,
-    "y": 200
+    "x": 425,
+    "y": 225
   },
-  "sac": {
-    "high": "models/sac-high.glb",
-    "low": "models/sac-low.glb",
-    "x": 545,
+  "academic": {
+    "high": "models/academic-high.glb",
+    "low": "models/academic-low.glb",
+    "x": 430,
+    "y": 400
+  },
+  "nescii": {
+    "high": "models/nescii-high.glb",
+    "low": "models/nescii-low.glb",
+    "x": 210,
     "y": 300
   },
-  "nescafe": {
-    "high": "models/nescafe-high.glb",
-    "low": "models/nescafe-low.glb",
-    "x": 620,
-    "y": 355
+  "gym": {
+    "high": "models/gym-high.glb",
+    "low": "models/gym-low.glb",
+    "x": 630,
+    "y": 357
+  },
+  "girls": {
+    "high": "models/girls-high.glb",
+    "low": "models/girls-low.glb",
+    "x": 470,
+    "y": 540
+  },
+  "guest": {
+    "high": "models/guest-high.glb",
+    "low": "models/guest-low.glb",
+    "x": 400,
+    "y": 490
+  },
+  "design": {
+    "high": "models/design-high.glb",
+    "low": "models/design-low.glb",
+    "x": 130,
+    "y": 100
+  },
+  "smart": {
+    "high": "models/smart-high.glb",
+    "low": "models/smart-low.glb",
+    "x": 550,
+    "y": 238
+  },
+  "kiosk": {
+    "high": "models/kiosk-high.glb",
+    "low": "models/kiosk-low.glb",
+    "x": 380,
+    "y": 205
   },
   "canteen": {
     "high": "models/canteen-high.glb",
     "low": "models/canteen-low.glb",
-    "x": 500,
-    "y": 425
-  },
-  "sports": {
-    "high": "models/sports-high.glb",
-    "low": "models/sports-low.glb",
-    "x": 280,
-    "y": 550
+    "x": 460,
+    "y": 180
   },
   "hostel": {
     "high": "models/hostel-high.glb",
     "low": "models/hostel-low.glb",
-    "x": 830,
-    "y": 190
-  },
-  "innovation": {
-    "high": "models/innovation-high.glb",
-    "low": "models/innovation-low.glb",
-    "x": 340,
-    "y": 330
+    "x": 200,
+    "y": 160
   },
   "gate": {
     "high": "models/gate-high.glb",
     "low": "models/gate-low.glb",
-    "x": 500,
-    "y": 60
+    "x": 30,
+    "y": 133
   },
   "amul": {
     "high": "models/amul-high.glb",
     "low": "models/amul-low.glb",
-    "x": 672,
-    "y": 238
+    "x": 480,
+    "y": 200
   },
-  "amphi": {
-    "high": "models/amphi-high.glb",
-    "low": "models/amphi-low.glb",
-    "x": 710,
-    "y": 452
+  "flag": {
+    "high": "models/flag-high.glb",
+    "low": "models/flag-low.glb",
+    "x": 270,
+    "y": 365
   }
 }

@@ -45,8 +45,8 @@ const chats = new Map();      // pairKey -> [{from,text,t}]
 let adminTokens = new Set();
 
 /* ---------- campus flavor ---------- */
-const POIS = [['SAC', 545, 318], ['Central Library', 400, 235], ['Main Canteen', 500, 440], ['Nescafe', 620, 368], ['Amphitheatre', 710, 455], ['Football Ground', 200, 445], ['APJ Complex', 620, 200], ['Admin Block', 500, 140], ['Sports Complex', 280, 555], ['Hostel BH-2', 830, 200], ['Main Gate', 500, 80]];
-const WPS = [[500, 180], [500, 300], [500, 520], [300, 300], [700, 300], [140, 300], [860, 300], [500, 620], [650, 115], [545, 340], [400, 250], [710, 470], [250, 470], [830, 220], [620, 368]];
+const POIS = [['Moksha Ground', 475, 300], ['SAC & Library', 550, 400], ['Student Canteen', 460, 185], ['Amul Ground', 230, 240], ['Admin Block', 345, 360], ['Flag Circle', 270, 368], ['Sports Complex', 780, 470], ['APJ Complex', 425, 230], ['Boys Hostel', 250, 175], ['Main Gate', 60, 450]];
+const WPS = [[60, 140], [250, 140], [460, 140], [60, 300], [230, 265], [475, 330], [345, 390], [550, 390], [660, 380], [780, 450], [450, 550], [270, 420], [60, 450], [60, 600], [400, 500]];
 const spotFor = (x, y) => {
   let best = null, bd = 1e9;
   for (const [n, px, py] of POIS) { const d = Math.hypot(x - px, y - py); if (d < bd) { bd = d; best = n; } }
@@ -79,8 +79,8 @@ setInterval(() => {
 const H = 3600e3, T0 = now();
 const iso = (t) => new Date(t).toISOString();
 let events = [
-  { id: 'mok-main', name: 'Moksha — Main Stage', category: 'Shows', festival: 'Moksha', venue_name: 'Amphitheatre', venue_id: 'amphi', campus_x: 710, campus_y: 445, latitude: 28.6068, longitude: 77.035, start_time: iso(T0 - 2 * H), end_time: iso(T0 + 6 * H), description: 'Flagship Moksha stage.', verified: true, published: true, crowd: null, interested_base: 412 },
-  { id: 'mok-bands', name: 'Battle of Bands', category: 'Music', festival: 'Moksha', venue_name: 'SAC', venue_id: 'sac', campus_x: 545, campus_y: 300, latitude: 28.6102, longitude: 77.0336, start_time: iso(T0 + 3 * H), end_time: iso(T0 + 5.5 * H), description: 'Inter-college band face-off.', verified: true, published: true, crowd: null, interested_base: 187 },
+  { id: 'mok-main', name: 'Moksha — Main Stage', category: 'Shows', festival: 'Moksha', venue_name: 'Moksha Ground', venue_id: 'moksha-ground', campus_x: 475, campus_y: 295, latitude: 28.6088, longitude: 77.033, start_time: iso(T0 - 2 * H), end_time: iso(T0 + 6 * H), description: 'Flagship Moksha stage.', verified: true, published: true, crowd: null, interested_base: 412 },
+  { id: 'mok-bands', name: 'Battle of Bands', category: 'Music', festival: 'Moksha', venue_name: 'SAC & Library', venue_id: 'sac', campus_x: 550, campus_y: 395, latitude: 28.6094, longitude: 77.0336, start_time: iso(T0 + 3 * H), end_time: iso(T0 + 5.5 * H), description: 'Inter-college band face-off.', verified: true, published: true, crowd: null, interested_base: 187 },
   { id: 'mok-after', name: 'Moksha Afterparty', category: 'Cultural', festival: 'Moksha', venue_name: 'Venue TBA', venue_id: null, campus_x: null, campus_y: null, latitude: null, longitude: null, start_time: iso(T0 + 13 * H), end_time: iso(T0 + 15 * H), description: 'Venue confirmed soon.', verified: false, published: true, crowd: null, interested_base: 64 },
 ];
 /* expiry sweeper */
@@ -151,7 +151,7 @@ const server = http.createServer(async (req, res) => {
       const { name, dept } = await body(req);
       if (!String(name || '').trim()) return send(res, 400, { error: 'name required' });
       const id = rid('u-'), token = crypto.randomBytes(16).toString('hex');
-      users.set(id, { id, name: String(name).slice(0, 40), dept: String(dept || '').slice(0, 20), token, x: 560, y: 332, spot: 'Near SAC', seenAt: now(), bot: false, wp: null });
+      users.set(id, { id, name: String(name).slice(0, 40), dept: String(dept || '').slice(0, 20), token, x: 350, y: 400, spot: 'Near Admin Block', seenAt: now(), bot: false, wp: null });
       byToken.set(token, id);
       broadcast({ type: 'roster', roster: roster() });
       return send(res, 200, { id, token });

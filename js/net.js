@@ -118,7 +118,7 @@ export const Net = {
   },
   async beat(pos) {
     if (!this.live || this.paused) return;
-    try { await this.api('POST', '/api/pos', pos || { x: 560, y: 332 }); } catch {}
+    try { await this.api('POST', '/api/pos', pos || { x: 350, y: 400 }); } catch {}
   },
   setPaused(p) { this.paused = p; if (!p) this.beat(); },
   /* people shaped like local friends for the map + lists */
@@ -126,7 +126,7 @@ export const Net = {
     return this.roster.map((u) => ({
       id: u.id, name: u.name, short: u.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase(),
       dept: u.dept || '', grad: gradFor(u.id), spot: u.spot || 'On campus',
-      dist: Math.round(Math.hypot(u.x - 560, u.y - 332) * 0.9),
+      dist: Math.round(Math.hypot(u.x - 350, u.y - 400) * 0.9),
       online: true, x: u.x, y: u.y, vibe: u.bot ? 'Wandering campus 🤖' : 'Live on Link Up ⚡',
       live: true, bot: !!u.bot,
     }));

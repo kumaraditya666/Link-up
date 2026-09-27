@@ -29,11 +29,11 @@ export const CATEGORIES = [
  * lat/lng are APPROXIMATE (linear mapping around NSUT Dwarka ~28.6097,77.0320)
  * used only for Share text — never for on-map placement. */
 export const VENUES = [
-  { id: 'amphi', name: 'Amphitheatre', x: 710, y: 445 },
-  { id: 'sac', name: 'SAC', x: 545, y: 300 },
-  { id: 'ground', name: 'Football Ground', x: 190, y: 445 },
-  { id: 'canteen', name: 'Main Canteen Lawns', x: 500, y: 460 },
-  { id: 'library', name: 'Central Library Plaza', x: 400, y: 255 },
+  { id: 'moksha-ground', name: 'Moksha Ground', x: 475, y: 295 },
+  { id: 'sac', name: 'SAC & Library', x: 550, y: 395 },
+  { id: 'amul-ground', name: 'Amul Ground', x: 230, y: 235 },
+  { id: 'sports', name: 'Sports Complex', x: 780, y: 470 },
+  { id: 'canteen', name: 'Student Canteen Lawns', x: 460, y: 180 },
 ];
 export const venueById = (id) => VENUES.find((v) => v.id === id) || null;
 
@@ -41,7 +41,7 @@ export function approxLatLng(x, y) {
   return { lat: 28.6126 - y * 8.1e-6, lng: 77.0289 + x * 8.6e-6 };
 }
 
-const LS_KEY = 'linkup.festival_events.v1';
+const LS_KEY = 'linkup.festival_events.v2';
 
 function seed() {
   const now = Date.now();
@@ -50,41 +50,41 @@ function seed() {
   return [
     {
       id: 'mok-main', name: 'Moksha — Main Stage', category: 'Shows', festival: 'Moksha',
-      venue_name: 'Amphitheatre', venue_id: 'amphi', campus_x: 710, campus_y: 445,
-      ...approxLatLng(710, 445),
-      latitude: approxLatLng(710, 445).lat, longitude: approxLatLng(710, 445).lng,
+      venue_name: 'Moksha Ground', venue_id: 'moksha-ground', campus_x: 475, campus_y: 295,
+      ...approxLatLng(475, 295),
+      latitude: approxLatLng(475, 295).lat, longitude: approxLatLng(475, 295).lng,
       start_time: iso(now - 2 * H), end_time: iso(now + 6 * H),
-      description: 'Flagship Moksha stage — opening acts, headliners and the famous fest crowd. Entry via the east walkway.',
+      description: 'Flagship Moksha stage on the big central ground — opening acts, headliners and the famous fest crowd.',
       verified: true, published: true, crowd: null, interested_base: 412,
     },
     {
       id: 'mok-bands', name: 'Battle of Bands', category: 'Music', festival: 'Moksha',
-      venue_name: 'SAC', venue_id: 'sac', campus_x: 545, campus_y: 300,
-      latitude: approxLatLng(545, 300).lat, longitude: approxLatLng(545, 300).lng,
+      venue_name: 'SAC & Library', venue_id: 'sac', campus_x: 550, campus_y: 395,
+      latitude: approxLatLng(550, 395).lat, longitude: approxLatLng(550, 395).lng,
       start_time: iso(now + 3 * H), end_time: iso(now + 5.5 * H),
-      description: 'Inter-college band face-off. Five finalists, one stage, loud opinions.',
+      description: 'Inter-college band face-off at SAC. Five finalists, one stage, loud opinions.',
       verified: true, published: true, crowd: null, interested_base: 187,
     },
     {
       id: 'mok-nukkad', name: 'Nukkad Natak — Street Plays', category: 'Theatre', festival: 'Moksha',
-      venue_name: 'Football Ground', venue_id: 'ground', campus_x: 190, campus_y: 445,
-      latitude: approxLatLng(190, 445).lat, longitude: approxLatLng(190, 445).lng,
+      venue_name: 'Amul Ground', venue_id: 'amul-ground', campus_x: 230, campus_y: 235,
+      latitude: approxLatLng(230, 235).lat, longitude: approxLatLng(230, 235).lng,
       start_time: iso(now + 26 * H), end_time: iso(now + 29 * H),
-      description: 'Street theatre circle on the ground edge. Bring a friend, sit on the grass.',
+      description: 'Street theatre circle on Amul Ground. Bring a friend, sit on the grass.',
       verified: true, published: true, crowd: null, interested_base: 96,
     },
     {
       id: 'mok-starnight', name: 'Star Night — EDM Headliner', category: 'Music', festival: 'Moksha',
-      venue_name: 'Amphitheatre', venue_id: 'amphi', campus_x: 710, campus_y: 445,
-      latitude: approxLatLng(710, 445).lat, longitude: approxLatLng(710, 445).lng,
+      venue_name: 'Moksha Ground', venue_id: 'moksha-ground', campus_x: 475, campus_y: 295,
+      latitude: approxLatLng(475, 295).lat, longitude: approxLatLng(475, 295).lng,
       start_time: iso(now + 9 * H), end_time: iso(now + 12 * H),
       description: 'Closing-night headliner set with full stage lighting. Wristbands at the SAC desk.',
       verified: true, published: true, crowd: null, interested_base: 530,
     },
     {
       id: 'mok-classical', name: 'Classical Dance Showcase', category: 'Dance', festival: 'Moksha',
-      venue_name: 'SAC', venue_id: 'sac', campus_x: 545, campus_y: 300,
-      latitude: approxLatLng(545, 300).lat, longitude: approxLatLng(545, 300).lng,
+      venue_name: 'SAC & Library', venue_id: 'sac', campus_x: 550, campus_y: 395,
+      latitude: approxLatLng(550, 395).lat, longitude: approxLatLng(550, 395).lng,
       start_time: iso(now - 26 * H), end_time: iso(now - 24 * H),
       description: 'Yesterday’s classical showcase — Kathak, Bharatanatyam and Odissi medley.',
       verified: true, published: true, crowd: null, interested_base: 143,

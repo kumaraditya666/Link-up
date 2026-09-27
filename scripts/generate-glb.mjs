@@ -175,19 +175,23 @@ const SPECS = {
   admin: { wall: '#b9a98c', roof: '#7d7466', trim: '#31437c', entrance: 'S', floors: 3, flag: true, blocks: [{ ox: 0, oz: 0, w: 120, d: 46, h: 15 }, { ox: -62, oz: 6, w: 30, d: 40, h: 11 }, { ox: 62, oz: 6, w: 30, d: 40, h: 11 }] },
   library: { wall: '#c8bfae', roof: '#6f7d8c', trim: '#0e7490', entrance: 'S', floors: 3, stepsWide: 34, blocks: [{ ox: 0, oz: 0, w: 112, d: 50, h: 13, glass: 'S' }, { ox: -70, oz: -4, w: 40, d: 36, h: 9 }] },
   apj: { wall: '#b7bdc9', roof: '#5d6673', trim: '#7c3aed', entrance: 'W', floors: 3, blocks: [{ ox: -10, oz: 0, w: 120, d: 42, h: 14 }, { ox: 55, oz: 34, w: 34, d: 62, h: 14 }] },
-  sac: { wall: '#cfc4d8', roof: '#4c3a6e', trim: '#7c3aed', entrance: 'S', floors: 2, flag: true, blocks: [{ ox: 0, oz: 0, w: 72, d: 44, h: 11 }, { ox: -48, oz: 2, w: 26, d: 36, h: 8 }, { ox: 48, oz: 2, w: 26, d: 36, h: 8 }] },
-  nescafe: { wall: '#d8b48c', roof: '#8a5a24', trim: '#a33d1f', entrance: 'S', floors: 1, umbrellas: 3, blocks: [{ ox: 0, oz: 0, w: 42, d: 26, h: 5 }] },
+  academic: { wall: '#b7bdc9', roof: '#5d6673', trim: '#31437c', entrance: 'S', floors: 3, blocks: [{ ox: 0, oz: -4, w: 64, d: 40, h: 13 }, { ox: -40, oz: 12, w: 22, d: 44, h: 10 }, { ox: 40, oz: 12, w: 22, d: 44, h: 10 }] },
+  nescii: { wall: '#bcc8b4', roof: '#3f5a44', trim: '#166534', entrance: 'S', floors: 2, doorWide: 16, blocks: [{ ox: 0, oz: 0, w: 96, d: 60, h: 8 }] },
+  gym: { wall: '#bcc8b4', roof: '#3f5a44', trim: '#166534', entrance: 'S', floors: 2, doorWide: 14, blocks: [{ ox: 0, oz: 0, w: 80, d: 44, h: 10 }] },
+  girls: { wall: '#c2b8a4', roof: '#6e6252', trim: '#334155', entrance: 'S', floors: 4, blocks: [{ ox: 0, oz: 0, w: 96, d: 36, h: 14 }] },
+  guest: { wall: '#c9c2b2', roof: '#6e6252', trim: '#6e6252', entrance: 'S', floors: 2, blocks: [{ ox: 0, oz: 0, w: 44, d: 28, h: 7 }] },
+  design: { wall: '#b9c6d4', roof: '#3d4c5e', trim: '#06b6d4', entrance: 'S', floors: 3, blocks: [{ ox: 0, oz: 0, w: 70, d: 40, h: 12, glass: 'S' }] },
+  smart: { wall: '#cfc4d8', roof: '#4c3a6e', trim: '#7c3aed', entrance: 'S', floors: 2, blocks: [{ ox: 0, oz: 0, w: 52, d: 36, h: 10, glass: 'S' }] },
+  kiosk: { wall: '#d8b48c', roof: '#8a5a24', trim: '#a33d1f', entrance: 'S', floors: 1, blocks: [{ ox: 0, oz: 0, w: 16, d: 12, h: 4 }] },
   canteen: { wall: '#d9c39a', roof: '#8a6a34', trim: '#7c4a12', entrance: 'S', floors: 1, umbrellas: 4, doorWide: 16, blocks: [{ ox: -8, oz: 0, w: 100, d: 44, h: 7 }, { ox: 58, oz: -6, w: 34, d: 26, h: 5 }] },
-  sports: { wall: '#bcc8b4', roof: '#3f5a44', trim: '#166534', entrance: 'N', floors: 2, doorWide: 14, blocks: [{ ox: -10, oz: 0, w: 92, d: 50, h: 10 }, { ox: 55, oz: 8, w: 30, d: 34, h: 7 }] },
   hostel: { wall: '#c2b8a4', roof: '#6e6252', trim: '#334155', entrance: 'S', floors: 5, blocks: [{ ox: 0, oz: 0, w: 100, d: 36, h: 17 }, { ox: -40, oz: 24, w: 24, d: 30, h: 13 }, { ox: 40, oz: 24, w: 24, d: 30, h: 13 }] },
-  innovation: { wall: '#b9c6d4', roof: '#3d4c5e', trim: '#06b6d4', entrance: 'S', floors: 4, blocks: [{ ox: 0, oz: 8, w: 60, d: 40, h: 16, glass: 'SE' }, { ox: 0, oz: -14, w: 84, d: 30, h: 5 }] },
-  pavilion: { wall: '#c9c2b2', roof: '#5d6b52', trim: '#166534', entrance: 'S', floors: 1, blocks: [{ ox: 0, oz: 0, w: 34, d: 14, h: 5 }] },
 };
-/* campus grid placement */
+/* campus grid placement (reference-image layout) */
 const PLACE = {
-  admin: [500, 140], library: [400, 210], apj: [620, 200], sac: [545, 300],
-  nescafe: [620, 355], canteen: [500, 425], sports: [280, 550], hostel: [830, 190],
-  innovation: [340, 330], pavilion: [150, 492], gate: [500, 60], amul: [672, 238], amphi: [710, 452],
+  admin: [345, 355], library: [550, 395], apj: [425, 225], canteen: [460, 180],
+  hostel: [200, 160], gate: [30, 133], amul: [480, 200],
+  academic: [430, 400], nescii: [210, 300], gym: [630, 357], girls: [470, 540],
+  guest: [400, 490], design: [130, 100], smart: [550, 238], kiosk: [380, 205], flag: [270, 365],
 };
 
 /* ---------- special models ---------- */
@@ -213,6 +217,20 @@ function buildAmul(detail) {
     for (let i = 0; i < 5; i++) box(opaque, -6.4 + i * 3.2, 8.0, 6.4, 1.6, 0.15, 4.6, i % 2 ? white : red);
     box(opaque, 0, 2.2, 5.2, 10, 1.2, 0.8, hex('#6e5a44')); // counter
     box(glow, 0, 4.6, 5.05, 8, 1.6, 0.3, C.amberWin); // lit serving hatch
+  }
+  return { opaque, glow };
+}
+function buildFlag(detail) {
+  const opaque = new B(), glow = new B();
+  const stone = hex('#b9b0a0'), trim = hex('#31437c');
+  box(opaque, 0, 0.8, 0, 26, 1.6, 26, stone);                       // plaza slab
+  box(opaque, 0, 2.2, 0, 8, 2.8, 8, stone);                          // pedestal
+  prism(opaque, 0, 13, 0, 0.5, 20, 8, C.dark);                       // pole
+  box(opaque, 3.4, 21, 0, 6.4, 3.6, 0.4, trim);                      // flag
+  if (detail) for (let i = 0; i < 4; i++) {
+    const a = (i / 4) * Math.PI * 2 + 0.78;
+    box(opaque, Math.cos(a) * 10, 1.8, Math.sin(a) * 10, 2.4, 2.4, 2.4, stone); // bollards
+    box(glow, Math.cos(a) * 10, 3.2, Math.sin(a) * 10, 1.2, 0.8, 1.2, C.amberWin); // lamps
   }
   return { opaque, glow };
 }
@@ -351,7 +369,7 @@ for (const [id, spec] of Object.entries(SPECS)) {
 }
 emit('gate', buildGate(true), buildGate(false), PLACE.gate);
 emit('amul', buildAmul(true), buildAmul(false), PLACE.amul);
-emit('amphi', buildAmphi(true), buildAmphi(false), PLACE.amphi);
+emit('flag', buildFlag(true), buildFlag(false), PLACE.flag);
 emit('moksha-stage', buildMokshaStage(), buildMokshaStageLow(), null);
 writeFileSync(new URL('manifest.json', outDir), JSON.stringify(manifest, null, 2));
 console.log(stats.join('\n'));

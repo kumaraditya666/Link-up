@@ -23,12 +23,12 @@ const S = {
   ghost: store.get('ghost', false),
   session: store.get('session', null),
   outgoing: store.get('outgoing', null),
-  incomingQueue: [{ id: 'kabir', spot: 'Near Amphitheatre', dist: 120 }],
+  incomingQueue: [{ id: 'kabir', spot: 'Moksha Ground', dist: 140 }],
   incoming: store.get('incoming', []),
   inbox: store.get('inbox', THREADS),
   unread: store.get('unread', { sara: 1 }),
   rsvp: store.get('rsvp', ['ev1']),
-  visited: store.get('visited', ['sac', 'canteen', 'nescafe']),
+  visited: store.get('visited', ['sac-lib', 'canteen', 'moksha-ground']),
   activeChat: null,
   friendFilter: 'all',
   placeFilter: 'all',
@@ -65,7 +65,7 @@ function updateNetPill() {
 function renderDebug() {
   updateNetPill();
   const lines = [
-    `build: 8 · mode: ${Net.mode.toUpperCase()} · ghost: ${S.ghost ? 'ON' : 'off'}`,
+    `build: 11 · mode: ${Net.mode.toUpperCase()} · ghost: ${S.ghost ? 'ON' : 'off'}`,
     `server: ${Net.base || '(none)'}`,
     `me: ${Net.me ? `${Net.me.name} (${Net.me.id})` : '(not joined)'}`,
     `profile: ${myName()} · ${S.profile.dept}`,
@@ -77,6 +77,8 @@ function renderDebug() {
   ];
   $('#debugBody').textContent = lines.join('\n');
 }
+/* geography replacement: migrate stale visited ids from the old layout */
+S.visited = S.visited.map((id) => (id === 'sac' ? 'sac-lib' : id === 'nescafe' ? 'moksha-ground' : id));
 function persist() {
   store.set('ghost', S.ghost); store.set('session', S.session);
   store.set('outgoing', S.outgoing); store.set('incoming', S.incoming);

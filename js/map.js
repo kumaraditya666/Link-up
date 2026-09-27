@@ -1,17 +1,17 @@
 /* Link Up — Three.js 3D campus renderer (offline-first, vendored three).
  *
- * A miniature digital NSUT: perspective orbit camera, GLB landmarks with LOD
- * (procedural, geographically placed — stylized approximations, not survey data),
- * real lighting + soft shadows, instanced trees, roads/paths, sports markings,
- * people + vehicles for scale, distance-based HTML labels, day/evening/night,
- * and the temporary Moksha event overlay on real campus geometry.
+ * Geography follows the verified reference layout: North Gate NW, Main Gate SW,
+ * Design + Boys Hostels north, Canteen/APJ/Smart north-central, Amul Ground,
+ * Moksha Ground central (main fest venue), Admin + Academic Blocks + SAC/Library
+ * mid-campus, Gym east, Sports Complex far east with track, NESCII halls,
+ * Guest House + Girls Hostel south. Stylized miniature — footprints approximate.
  */
 import * as THREE from 'three';
 import { loadGLB } from './load-glb.js';
+import { ROADS } from './route.js';
 import { BUILDINGS, FRIENDS } from './data.js';
 import { EventStore, eventStatus, festivalState } from './events.js';
 
-/* grid (x:0..1000, y:0..700) -> world (y-up, meters-ish, 1u ≈ 0.9m) */
 const GX = (x) => x - 500;
 const GZ = (y) => y - 350;
 const TAU = Math.PI * 2;
@@ -23,6 +23,18 @@ function mulberry(seed) {
   return () => { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
 }
 
+/* approximate campus boundary (from reference outline — never drawn raw) */
+const BOUNDARY = [[40, 120], [300, 130], [430, 60], [560, 20], [660, 60], [645, 180], [665, 260], [615, 345], [830, 365], [905, 435], [835, 620], [700, 665], [100, 665], [35, 640], [35, 560], [35, 470], [35, 380], [35, 250], [35, 180]];
+const GATES = [{ x: 30, y: 133 }, { x: 30, y: 450 }];
+function inPoly(x, y) {
+  let inside = false;
+  for (let i = 0, j = BOUNDARY.length - 1; i < BOUNDARY.length; j = i++) {
+    const [xi, yi] = BOUNDARY[i], [xj, yj] = BOUNDARY[j];
+    if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+
 const MODES = {
   day: { sky: 0x9ec7ee, fog: 0xcfe2f5, ground: 0x79b86a, groundOut: 0x5da055, sun: 0xfff4d6, sunI: 2.6, hemiSky: 0xbdd7f2, hemiGnd: 0x6a8a5a, hemiI: 0.9, glow: 0.1, beams: 0, stars: false, road: 0x4b5261 },
   evening: { sky: 0x35306b, fog: 0x6b5580, ground: 0x4d8a4e, groundOut: 0x356636, sun: 0xffb37a, sunI: 1.7, hemiSky: 0x8a7ab8, hemiGnd: 0x3a4a3a, hemiI: 0.55, glow: 1.1, beams: 0.35, stars: false, road: 0x333845 },
@@ -30,28 +42,55 @@ const MODES = {
 };
 const SUNPOS = { day: [600, 950, 350], evening: [-850, 260, 250], night: [450, 750, -350] };
 
-const ROADS = [
-  { pts: [[140, 180], [880, 180]], w: 10, kind: 'road' }, { pts: [[120, 520], [880, 520]], w: 10, kind: 'road' },
-  { pts: [[140, 180], [140, 520]], w: 10, kind: 'road' }, { pts: [[880, 180], [880, 520]], w: 10, kind: 'road' },
-  { pts: [[500, 80], [500, 620]], w: 12, kind: 'road' }, { pts: [[160, 300], [860, 300]], w: 9, kind: 'road' },
-  { pts: [[400, 180], [400, 232]], w: 4, kind: 'path' }, { pts: [[500, 80], [500, 112]], w: 5, kind: 'path' },
-  { pts: [[500, 300], [500, 400]], w: 5, kind: 'path' }, { pts: [[620, 300], [710, 300], [710, 408]], w: 5, kind: 'path' },
-  { pts: [[300, 300], [262, 448]], w: 4, kind: 'path' }, { pts: [[280, 520], [280, 572]], w: 4, kind: 'path' },
-  { pts: [[830, 180], [830, 214]], w: 5, kind: 'path' }, { pts: [[420, 300], [372, 322]], w: 4, kind: 'path' },
-  { pts: [[140, 520], [140, 620]], w: 8, kind: 'road' },
+const PLAZAS = [
+  { x: 345, y: 392, w: 130, d: 40 },  // admin apron
+  { x: 460, y: 202, w: 110, d: 30 },  // canteen apron
+  { x: 550, y: 422, w: 120, d: 30 },  // sac apron
 ];
-const PLAZAS = [{ x: 545, y: 318, w: 170, d: 96 }, { x: 400, y: 252, w: 130, d: 44 }];
-const PARKING = { x: 620, y: 115, w: 90, d: 34 };
-const FIELD = { x: 190, y: 445, w: 168, d: 92 };
-const COURT = { x: 368, y: 562, w: 46, d: 30 };
-/* footprint avoid-list for trees: [cx, cy, hw, hd] (+ amphi circle handled separately) */
+const PARKING = { x: 250, y: 438, w: 70, d: 26 };
+const FIELDS = [
+  { id: 'sports', x: 780, y: 470, w: 150, d: 100, track: true, goals: true },
+  { id: 'moksha-ground', x: 475, y: 295, w: 260, d: 60, markings: true, dirt: true },
+  { id: 'amul-ground', x: 230, y: 235, w: 140, d: 80, plain: true },
+];
+/* model placements: {m: model file id, id: pick/map id, x, y, ry?} */
+const PLACEMENTS = [
+  { m: 'admin', id: 'admin', x: 345, y: 355 },
+  { m: 'library', id: 'sac-lib', x: 550, y: 395 },
+  { m: 'apj', id: 'apj', x: 425, y: 225 },
+  { m: 'canteen', id: 'canteen', x: 460, y: 180 },
+  { m: 'hostel', id: 'boys-a', x: 200, y: 160 },
+  { m: 'hostel', id: 'boys-b', x: 300, y: 190 },
+  { m: 'hostel', id: 'girls', x: 470, y: 540 },
+  { m: 'gate', id: 'north-gate', x: 32, y: 133, ry: Math.PI / 2 },
+  { m: 'gate', id: 'main-gate', x: 32, y: 450, ry: Math.PI / 2 },
+  { m: 'kiosk', id: 'safal', x: 380, y: 205 },
+  { m: 'kiosk', id: 'stationary', x: 510, y: 215 },
+  { m: 'academic', id: 'academic-a', x: 430, y: 400 },
+  { m: 'academic', id: 'academic-b', x: 490, y: 340 },
+  { m: 'nescii', id: 'nescii2', x: 210, y: 300 },
+  { m: 'nescii', id: 'nescii1', x: 270, y: 420 },
+  { m: 'gym', id: 'gym', x: 630, y: 357 },
+  { m: 'guest', id: 'guest', x: 400, y: 490 },
+  { m: 'design', id: 'design', x: 130, y: 100 },
+  { m: 'smart', id: 'smart', x: 550, y: 238 },
+  { m: 'flag', id: 'flag', x: 270, y: 365 },
+];
+/* tree-avoid rects [cx, cy, hw, hd] */
 const FOOT = [
-  [500, 140, 80, 45], [400, 210, 80, 45], [620, 200, 85, 65], [545, 300, 65, 40],
-  [620, 355, 28, 20], [500, 425, 70, 35], [280, 550, 65, 40], [830, 190, 65, 45],
-  [340, 330, 55, 45], [150, 492, 25, 15], [500, 60, 22, 10], [672, 238, 14, 12],
+  [345, 355, 70, 40], [550, 395, 70, 40], [425, 225, 70, 45], [460, 180, 65, 32],
+  [200, 160, 60, 40], [300, 190, 60, 40], [470, 540, 60, 40], [130, 100, 55, 35],
+  [430, 400, 55, 45], [490, 340, 55, 45], [210, 300, 65, 45], [270, 420, 65, 45],
+  [630, 357, 50, 35], [400, 490, 40, 30], [550, 238, 40, 30], [270, 365, 25, 25],
+  [380, 205, 16, 14], [510, 215, 16, 14], [480, 200, 14, 12],
 ];
-const HEIGHTS = { admin: 17, library: 15, apj: 16, sac: 13, nescafe: 7, canteen: 9, sports: 12, hostel: 19, innovation: 18, amphi: 12, gate: 16, amul: 9 };
-const ME_POS = { x: 560, y: 332 };
+const HEIGHTS = {
+  admin: 17, 'sac-lib': 15, apj: 16, smart: 12, canteen: 9, gym: 12,
+  'boys-a': 19, 'boys-b': 19, girls: 16, design: 14, 'north-gate': 16, 'main-gate': 16,
+  safal: 6, stationary: 6, 'academic-a': 15, 'academic-b': 15, nescii2: 10, nescii1: 10,
+  guest: 9, flag: 22, 'moksha-ground': 4, 'amul-ground': 4, sports: 6,
+};
+const ME_POS = { x: 350, y: 400 };
 
 export function createMap(canvas, opts = {}) {
   const onSelect = opts.onSelect || (() => {});
@@ -62,7 +101,7 @@ export function createMap(canvas, opts = {}) {
     highlightId: null, route: null, mokshaEventId: null,
     cam: null,
   };
-  const cam = (state.cam = { tx: 510, ty: 350, dist: 1250, yaw: -0.62, pitch: 0.96 });
+  const cam = (state.cam = { tx: 470, ty: 350, dist: 1250, yaw: -0.62, pitch: 0.96 });
   const goal = { ...cam };
   let fly = null;
 
@@ -93,7 +132,6 @@ export function createMap(canvas, opts = {}) {
   sun.shadow.bias = -0.0006;
   scene.add(sun); scene.add(sun.target);
 
-  /* labels overlay */
   const labelLayer = document.createElement('div');
   labelLayer.style.cssText = 'position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:4';
   canvas.parentElement.appendChild(labelLayer);
@@ -116,7 +154,7 @@ export function createMap(canvas, opts = {}) {
       const [ax, ay] = pts[Math.max(0, i - 1)], [bx, by] = pts[i], [cx2, cy2] = pts[Math.min(pts.length - 1, i + 1)];
       let dx = cx2 - ax, dy = cy2 - ay;
       const L = Math.hypot(dx, dy) || 1; dx /= L; dy /= L;
-      const nx = -dy * w / 2, ny = dx * w / 2;
+      const nx = (-dy * w) / 2, ny = (dx * w) / 2;
       pos.push(GX(bx + nx), y, GZ(by + ny), GX(bx - nx), y, GZ(by - ny));
       if (i > 0) { const a = (i - 1) * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
     }
@@ -133,11 +171,47 @@ export function createMap(canvas, opts = {}) {
   {
     const P = MODES.evening;
     const outer = flat(5200, 5200, P.groundOut, -0.6); scene.add(outer);
-    const inner = flat(1080, 740, P.ground, 0); inner.position.set(0, 0, 0); scene.add(inner);
-    scene.userData.ground = [outer, inner];
+    // campus ground follows the boundary polygon (urban grey-green outside)
+    const shape = new THREE.Shape();
+    BOUNDARY.forEach(([x, y], i) => { const vx = GX(x), vz = GZ(y); if (i === 0) shape.moveTo(vx, -vz); else shape.lineTo(vx, -vz); });
+    const campusGeo = new THREE.ShapeGeometry(shape);
+    campusGeo.rotateX(-Math.PI / 2);
+    const campus = new THREE.Mesh(campusGeo, new THREE.MeshStandardMaterial({ color: P.ground, roughness: 1 }));
+    campus.position.y = 0; campus.receiveShadow = true;
+    // ShapeGeometry lies in XY; after rotateX(-90°), shape Y maps to -Z. We built with -vz so it lands right.
+    scene.add(campus);
+    scene.userData.ground = [outer, campus];
+    // boundary hedge wall (natural edge, not the reference's cyan line)
+    const hedgePts = [];
+    for (let i = 0; i < BOUNDARY.length; i++) {
+      const [ax, ay] = BOUNDARY[i], [bx, by] = BOUNDARY[(i + 1) % BOUNDARY.length];
+      const L = Math.hypot(bx - ax, by - ay);
+      for (let d = 3; d < L - 2; d += 7) {
+        const x = ax + ((bx - ax) * d) / L, y = ay + ((by - ay) * d) / L;
+        if (GATES.some((g) => Math.hypot(x - g.x, y - g.y) < 16)) continue; // gate gaps
+        hedgePts.push({ x, y, a: Math.atan2(by - ay, bx - ax) });
+      }
+    }
+    const hedge = new THREE.InstancedMesh(
+      new THREE.BoxGeometry(4.5, 5, 2.4),
+      new THREE.MeshStandardMaterial({ color: 0x2e6b34, roughness: 1 }),
+      hedgePts.length,
+    );
+    {
+      const d = new THREE.Object3D(), col = new THREE.Color();
+      hedgePts.forEach((p, i) => {
+        d.position.set(GX(p.x), 2.2, GZ(p.y)); d.rotation.y = -p.a;
+        d.scale.set(1, 0.85 + ((i * 37) % 10) / 28, 1); d.updateMatrix();
+        hedge.setMatrixAt(i, d.matrix);
+        hedge.setColorAt(i, col.set(i % 3 ? 0x2e6b34 : 0x3a7d40));
+      });
+    }
+    hedge.instanceMatrix.needsUpdate = true;
+    if (hedge.instanceColor) hedge.instanceColor.needsUpdate = true;
+    hedge.castShadow = true;
+    scene.add(hedge);
     for (const pz of PLAZAS) {
       const q = flat(pz.w, pz.d, 0x9aa0ac, 0.25); q.position.set(GX(pz.x), 0.25, GZ(pz.y)); scene.add(q);
-      scene.userData['plaza' + pz.x] = q;
     }
     const pk = flat(PARKING.w, PARKING.d, 0x3a3f4c, 0.25); pk.position.set(GX(PARKING.x), 0.25, GZ(PARKING.y)); scene.add(pk);
     for (const r of ROADS) {
@@ -145,14 +219,13 @@ export function createMap(canvas, opts = {}) {
       curb.receiveShadow = true; scene.add(curb);
       const top = new THREE.Mesh(ribbonGeo(r.pts, r.w, 0.3), new THREE.MeshStandardMaterial({ color: r.kind === 'path' ? 0xa89a72 : P.road, roughness: 1 }));
       top.receiveShadow = true; scene.add(top);
-      (scene.userData.roads = scene.userData.roads || []).push(curb, top);
       if (r.kind === 'road') {
         const dashMat = new THREE.MeshBasicMaterial({ color: 0xe8d9a0 });
         for (let i = 0; i < r.pts.length - 1; i++) {
           const [ax, ay] = r.pts[i], [bx, by] = r.pts[i + 1];
           const L = Math.hypot(bx - ax, by - ay);
-          for (let d = 4; d < L - 4; d += 16) {
-            const t = d / L;
+          for (let dd = 4; dd < L - 4; dd += 16) {
+            const t = dd / L;
             const m = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 7), dashMat);
             m.rotation.x = -Math.PI / 2; m.rotation.z = -Math.atan2(by - ay, bx - ax);
             m.position.set(GX(ax + (bx - ax) * t), 0.45, GZ(ay + (by - ay) * t));
@@ -161,70 +234,113 @@ export function createMap(canvas, opts = {}) {
         }
       }
     }
-    // football stripes + markings
-    for (let i = 0; i < 8; i++) {
-      const s = flat(FIELD.w / 8, FIELD.d, i % 2 ? 0x35803f : 0x2f7539, 0.22);
-      s.position.set(GX(FIELD.x - FIELD.w / 2 + (FIELD.w / 8) * (i + 0.5)), 0.22, GZ(FIELD.y));
-      scene.add(s);
-    }
-    const lineMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 });
-    const line = (x0, y0, x1, y1) => {
-      const len = Math.hypot(x1 - x0, y1 - y0);
-      const m = new THREE.Mesh(new THREE.PlaneGeometry(0.9, len), lineMat);
-      m.rotation.x = -Math.PI / 2; m.rotation.z = -Math.atan2(y1 - y0, x1 - x0) + Math.PI / 2;
-      m.position.set(GX((x0 + x1) / 2), 0.4, GZ((y0 + y1) / 2)); scene.add(m);
-    };
-    const F = FIELD;
-    line(F.x - F.w / 2 + 3, F.y - F.d / 2 + 3, F.x + F.w / 2 - 3, F.y - F.d / 2 + 3);
-    line(F.x - F.w / 2 + 3, F.y + F.d / 2 - 3, F.x + F.w / 2 - 3, F.y + F.d / 2 - 3);
-    line(F.x - F.w / 2 + 3, F.y - F.d / 2 + 3, F.x - F.w / 2 + 3, F.y + F.d / 2 - 3);
-    line(F.x + F.w / 2 - 3, F.y - F.d / 2 + 3, F.x + F.w / 2 - 3, F.y + F.d / 2 - 3);
-    line(F.x, F.y - F.d / 2 + 3, F.x, F.y + F.d / 2 - 3);
-    // goals
-    const goalMat = new THREE.MeshStandardMaterial({ color: 0xf2f4f8, roughness: 0.6 });
-    for (const gx of [F.x - F.w / 2 + 1, F.x + F.w / 2 - 1]) {
-      for (const dz of [-4.5, 4.5]) {
-        const post = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 3.4, 8), goalMat);
-        post.position.set(GX(gx), 1.7, GZ(F.y + dz)); post.castShadow = true; scene.add(post);
-      }
-      const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 9.7, 8), goalMat);
-      bar.rotation.x = Math.PI / 2; bar.position.set(GX(gx), 3.4, GZ(F.y)); scene.add(bar);
-    }
-    // basketball court
-    const court = flat(COURT.w, COURT.d, 0x6e3d24, 0.3);
-    court.position.set(GX(COURT.x), 0.3, GZ(COURT.y)); scene.add(court);
-    line(COURT.x - COURT.w / 2 + 2, COURT.y, COURT.x + COURT.w / 2 - 2, COURT.y);
+    drawFields(P);
   }
 
-  /* ---------- GLB landmarks + LOD ---------- */
-  const MODEL_IDS = ['admin', 'library', 'apj', 'sac', 'nescafe', 'canteen', 'sports', 'hostel', 'innovation', 'gate', 'amul', 'amphi'];
-  const MODEL_POS = { admin: [500, 140], library: [400, 210], apj: [620, 200], sac: [545, 300], nescafe: [620, 355], canteen: [500, 425], sports: [280, 550], hostel: [830, 190], innovation: [340, 330], gate: [500, 60], amul: [672, 238], amphi: [710, 452], pavilion: [150, 492] };
+  function drawFields(P) {
+    for (const F of FIELDS) {
+      if (F.track) {
+        // running track: terracotta ring around a striped pitch
+        const outer = new THREE.Shape();
+        outer.absellipse(0, 0, F.w / 2 + 22, F.d / 2 + 22, 0, TAU);
+        const hole = new THREE.Path();
+        hole.absellipse(0, 0, F.w / 2 + 4, F.d / 2 + 4, 0, TAU);
+        outer.holes.push(hole);
+        const tg = new THREE.ShapeGeometry(outer, 48);
+        tg.rotateX(-Math.PI / 2);
+        const track = new THREE.Mesh(tg, new THREE.MeshStandardMaterial({ color: 0x9a5a34, roughness: 1 }));
+        track.position.set(GX(F.x), 0.32, GZ(F.y)); track.receiveShadow = true;
+        scene.add(track);
+      }
+      const stripes = F.plain ? 4 : 8;
+      for (let i = 0; i < stripes; i++) {
+        const col = F.dirt ? (i % 2 ? 0x9c7f47 : 0xa8894f) : i % 2 ? 0x35803f : 0x2f7539;
+        const s = flat(F.w / stripes, F.d, col, 0.22);
+        s.position.set(GX(F.x - F.w / 2 + (F.w / stripes) * (i + 0.5)), 0.22, GZ(F.y));
+        scene.add(s);
+      }
+      if (F.markings || F.goals) {
+        const lineMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 });
+        const line = (x0, y0, x1, y1) => {
+          const len = Math.hypot(x1 - x0, y1 - y0);
+          const m = new THREE.Mesh(new THREE.PlaneGeometry(0.9, len), lineMat);
+          m.rotation.x = -Math.PI / 2; m.rotation.z = -Math.atan2(y1 - y0, x1 - x0) + Math.PI / 2;
+          m.position.set(GX((x0 + x1) / 2), 0.4, GZ((y0 + y1) / 2)); scene.add(m);
+        };
+        line(F.x - F.w / 2 + 3, F.y - F.d / 2 + 3, F.x + F.w / 2 - 3, F.y - F.d / 2 + 3);
+        line(F.x - F.w / 2 + 3, F.y + F.d / 2 - 3, F.x + F.w / 2 - 3, F.y + F.d / 2 - 3);
+        line(F.x - F.w / 2 + 3, F.y - F.d / 2 + 3, F.x - F.w / 2 + 3, F.y + F.d / 2 - 3);
+        line(F.x + F.w / 2 - 3, F.y - F.d / 2 + 3, F.x + F.w / 2 - 3, F.y + F.d / 2 - 3);
+        if (F.goals) {
+          line(F.x, F.y - F.d / 2 + 3, F.x, F.y + F.d / 2 - 3);
+          const goalMat = new THREE.MeshStandardMaterial({ color: 0xf2f4f8, roughness: 0.6 });
+          for (const gx of [F.x - F.w / 2 + 1, F.x + F.w / 2 - 1]) {
+            for (const dz of [-4.5, 4.5]) {
+              const post = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 3.4, 8), goalMat);
+              post.position.set(GX(gx), 1.7, GZ(F.y + dz)); post.castShadow = true; scene.add(post);
+            }
+            const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 9.7, 8), goalMat);
+            bar.rotation.x = Math.PI / 2; bar.position.set(GX(gx), 3.4, GZ(F.y)); scene.add(bar);
+          }
+          // fence posts around the stadium
+          const fenceMat = new THREE.MeshStandardMaterial({ color: 0x5b6472, roughness: 1 });
+          for (let x = F.x - F.w / 2 - 30; x <= F.x + F.w / 2 + 30; x += 18) {
+            for (const y of [F.y - F.d / 2 - 30, F.y + F.d / 2 + 30]) {
+              const post = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 4, 6), fenceMat);
+              post.position.set(GX(x), 2, GZ(y)); scene.add(post);
+            }
+          }
+        } else {
+          // centre circle for fest/sports grounds
+          const pts = [];
+          for (let i = 0; i <= 26; i++) { const a = (i / 26) * TAU; pts.push([F.x + Math.cos(a) * 13, F.y + Math.sin(a) * 13]); }
+          for (let i = 0; i < pts.length - 1; i++) line(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1]);
+        }
+      }
+      // pickable ground marker (invisible hit plane)
+      const tag = new THREE.Mesh(
+        new THREE.PlaneGeometry(F.w, F.d),
+        new THREE.MeshBasicMaterial({ visible: false }),
+      );
+      tag.rotation.x = -Math.PI / 2;
+      tag.position.set(GX(F.x), 2, GZ(F.y));
+      tag.userData = { kind: 'place', id: F.id };
+      scene.add(tag); pickTargets.push(tag);
+    }
+  }
+
+  /* ---------- GLB landmarks + LOD (models shared across placements) ---------- */
   const lodObjs = [];
-  const venueGroups = {}; // buildingId -> Object3D (for highlight)
+  const cache = new Map();
   async function loadModels() {
-    for (const id of [...MODEL_IDS, 'pavilion']) {
+    const ids = [...new Set(PLACEMENTS.filter((p) => !p.skip).map((p) => p.m))];
+    await Promise.all(ids.map(async (id) => {
       try {
         const [hi, lo] = await Promise.all([loadGLB(`models/${id}-high.glb`), loadGLB(`models/${id}-low.glb`)]);
-        const lod = new THREE.LOD();
-        lod.addLevel(hi.group, 0); lod.addLevel(lo.group, 950);
-        const [gx, gy] = MODEL_POS[id];
-        lod.position.set(GX(gx), 0, GZ(gy));
-        lod.userData = { kind: 'place', id };
-        lod.traverse((o) => { o.userData.pickRoot = lod; });
-        scene.add(lod); lodObjs.push(lod); pickTargets.push(lod);
-        venueGroups[id] = lod;
+        cache.set(id, { hi, lo });
         for (const m of hi.windowMats) windowMats.push(m);
       } catch (e) { console.warn('model load failed', id, e); }
+    }));
+    for (const p of PLACEMENTS) {
+      if (p.skip || !cache.has(p.m)) continue;
+      const { hi, lo } = cache.get(p.m);
+      const lod = new THREE.LOD();
+      lod.addLevel(p.m === 'moksha-stage' ? hi.group : hi.group.clone(), 0);
+      lod.addLevel(lo.group.clone(), 950);
+      lod.position.set(GX(p.x), 0, GZ(p.y));
+      if (p.ry) lod.rotation.y = p.ry;
+      lod.userData = { kind: 'place', id: p.id };
+      lod.traverse((o) => { o.userData.pickRoot = lod; });
+      scene.add(lod); lodObjs.push(lod); pickTargets.push(lod);
     }
   }
   loadModels();
-  // Moksha stage (temporary furniture, loaded once, placed per event)
   let stageGroup = null, stageMats = [];
   loadGLB('models/moksha-stage-high.glb').then(({ group, windowMats: wm }) => {
     stageGroup = group; stageMats = wm; stageGroup.visible = false; scene.add(stageGroup);
   }).catch(() => {});
 
-  /* ---------- trees (instanced, 2 draw calls) ---------- */
+  /* ---------- trees (inside boundary only) ---------- */
   function segDist(px, py, ax, ay, bx, by) {
     const dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy || 1;
     const t = clamp(((px - ax) * dx + (py - ay) * dy) / L2, 0, 1);
@@ -234,14 +350,14 @@ export function createMap(canvas, opts = {}) {
     const rng = mulberry(20260327);
     const spots = [];
     let guard = 0;
-    while (spots.length < 150 && guard++ < 4000) {
-      const x = 60 + rng() * 880, y = 60 + rng() * 580;
-      if (FOOT.some(([fx, fy, hw, hd]) => Math.abs(x - fx) < hw + 12 && Math.abs(y - fy) < hd + 12)) continue;
-      if (Math.hypot(x - 710, y - 452) < 62) continue;
-      if (Math.abs(x - FIELD.x) < FIELD.w / 2 + 12 && Math.abs(y - FIELD.y) < FIELD.d / 2 + 12) continue;
-      if (PLAZAS.some((p) => Math.abs(x - p.x) < p.w / 2 + 6 && Math.abs(y - p.y) < p.d / 2 + 6)) continue;
-      if (Math.abs(x - PARKING.x) < PARKING.w / 2 + 6 && Math.abs(y - PARKING.y) < PARKING.d / 2 + 6) continue;
-      if (ROADS.some((r) => { for (let i = 0; i < r.pts.length - 1; i++) if (segDist(x, y, r.pts[i][0], r.pts[i][1], r.pts[i + 1][0], r.pts[i + 1][1]) < r.w / 2 + 7) return true; return false; })) continue;
+    while (spots.length < 170 && guard++ < 5000) {
+      const x = 20 + rng() * 900, y = 10 + rng() * 670;
+      if (!inPoly(x, y)) continue;
+      if (FOOT.some(([fx, fy, hw, hd]) => Math.abs(x - fx) < hw + 10 && Math.abs(y - fy) < hd + 10)) continue;
+      if (FIELDS.some((F) => Math.abs(x - F.x) < F.w / 2 + 10 && Math.abs(y - F.y) < F.d / 2 + 10)) continue;
+      if (PLAZAS.some((p) => Math.abs(x - p.x) < p.w / 2 + 5 && Math.abs(y - p.y) < p.d / 2 + 5)) continue;
+      if (Math.abs(x - PARKING.x) < PARKING.w / 2 + 5 && Math.abs(y - PARKING.y) < PARKING.d / 2 + 5) continue;
+      if (ROADS.some((r) => { for (let i = 0; i < r.pts.length - 1; i++) if (segDist(x, y, r.pts[i][0], r.pts[i][1], r.pts[i + 1][0], r.pts[i + 1][1]) < r.w / 2 + 6) return true; return false; })) continue;
       spots.push({ x, y, h: 8 + rng() * 6, r: 5 + rng() * 3, tone: rng(), rot: rng() * TAU });
     }
     const trunkG = new THREE.CylinderGeometry(0.7, 1.0, 5, 6);
@@ -266,7 +382,7 @@ export function createMap(canvas, opts = {}) {
 
   /* ---------- people + vehicles ---------- */
   {
-    const spots = [[545, 340], [500, 455], [710, 472], [400, 244], [250, 470], [620, 378], [340, 350]];
+    const spots = [[460, 200], [475, 330], [550, 415], [230, 260], [780, 500], [270, 385], [345, 375]];
     const rng = mulberry(77);
     const geo = new THREE.CapsuleGeometry(1.1, 2.4, 3, 8);
     const mat = new THREE.MeshStandardMaterial({ roughness: 0.9 });
@@ -286,9 +402,8 @@ export function createMap(canvas, opts = {}) {
     if (inst.instanceColor) inst.instanceColor.needsUpdate = true;
     inst.castShadow = true;
     scene.add(inst);
-    scene.userData.npcs = inst;
     const carCols = [0x7d8aa0, 0xa33d1f, 0x31437c, 0xc9ced7, 0x5d6673, 0x7c4a12];
-    const carPos = [[596, 115, 0], [612, 115, 0], [628, 115, 0], [644, 115, 0], [816, 236, 1.57], [816, 252, 1.57]];
+    const carPos = [[232, 438, 0], [244, 438, 0], [256, 438, 0], [268, 438, 0], [240, 447, 0], [262, 447, 0]];
     carPos.forEach(([cx, cy, a], ci) => {
       const g = new THREE.Group();
       const body = new THREE.Mesh(new THREE.BoxGeometry(8, 2.2, 3.8), new THREE.MeshStandardMaterial({ color: carCols[ci], roughness: 0.5, metalness: 0.3 }));
@@ -364,6 +479,11 @@ export function createMap(canvas, opts = {}) {
     return evCache.list;
   }
   window.addEventListener('linkup-events-changed', () => { evCache.at = 0; refreshMoksha(); });
+  const RING_SIZE = {
+    admin: 2.4, 'sac-lib': 2.4, 'moksha-ground': 3.6, 'amul-ground': 2.6, sports: 3.2,
+    canteen: 2.2, apj: 2.2, gym: 1.8, flag: 1.4, nescii1: 2.2, nescii2: 2.2,
+    'academic-a': 1.9, 'academic-b': 1.9,
+  };
   function refreshMoksha() {
     const evs = mokshaEvents();
     const active = festivalState('Moksha') !== 'ended' && evs.length;
@@ -371,7 +491,6 @@ export function createMap(canvas, opts = {}) {
     if (!active) { if (stageGroup) stageGroup.visible = false; return; }
     const main = evs.find((e) => eventStatus(e) === 'live') || evs[0];
     const st = eventStatus(main);
-    // stage furniture on real geometry; gone after the event
     if (stageGroup) {
       stageGroup.visible = st !== 'ended';
       stageGroup.position.set(GX(main.campus_x), 0, GZ(main.campus_y) + 6);
@@ -390,8 +509,6 @@ export function createMap(canvas, opts = {}) {
       mokGroup.add(mokMarker); pickTargets.push(mokMarker);
     }
     mokMarker.position.set(GX(main.campus_x), 52, GZ(main.campus_y));
-    // venue focus ring (sized to the actual venue footprint)
-    const RING_SIZE = { admin: 2.8, library: 2.5, apj: 2.8, sac: 1.9, sports: 2.3, hostel: 2.3, innovation: 1.9, amphi: 2.5, ground: 3.4, canteen: 2.3, nescafe: 1.3, gate: 1.2, amul: 1.0, pavilion: 1.2 };
     if (state.mokshaEventId) {
       const ev = EventStore.get(state.mokshaEventId);
       if (ev && ev.campus_x != null) {
@@ -409,7 +526,6 @@ export function createMap(canvas, opts = {}) {
         venueRing.scale.set(s, s, 1);
       } else venueRing.visible = false;
     } else venueRing.visible = false;
-    // beams (evening/night only)
     const wantBeams = MODES[state.timeOfDay].beams > 0 && st !== 'ended';
     if (wantBeams && beams.length === 0 && stageGroup) {
       const bm = new THREE.MeshBasicMaterial({ color: 0xa78bfa, transparent: true, opacity: MODES[state.timeOfDay].beams * 0.5, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
@@ -440,7 +556,7 @@ export function createMap(canvas, opts = {}) {
     sun.target.position.set(t.x, 0, t.z);
   }
   function fitView() {
-    const corners = [[80, 80], [920, 80], [80, 620], [920, 620]];
+    const corners = [[30, 20], [920, 20], [30, 680], [920, 680]];
     let lo = 300, hi = 3200;
     const v = new THREE.Vector3();
     for (let i = 0; i < 14; i++) {
@@ -586,14 +702,9 @@ export function createMap(canvas, opts = {}) {
   }
 
   /* ---------- labels ---------- */
-  const labelDefs = [
-    ...BUILDINGS.filter((b) => b.id !== 'ground').map((b) => ({
-      id: b.id, short: b.label, full: b.label.toUpperCase(), x: b.x, y: b.y, h: (HEIGHTS[b.id] || 10) + 8,
-    })),
-    { id: 'pavilion', short: 'Pavilion', full: 'PAVILION', x: 150, y: 492, h: 14 },
-    { id: 'gate', short: 'Main Gate', full: 'NSUT MAIN GATE', x: 500, y: 60, h: 24 },
-    { id: 'amul', short: 'Amul', full: 'AMUL', x: 672, y: 238, h: 16 },
-  ];
+  const labelDefs = BUILDINGS.map((b) => ({
+    id: b.id, short: b.label, full: b.label.toUpperCase(), x: b.x, y: b.y, h: (HEIGHTS[b.id] || 10) + 8,
+  }));
   function updateLabels() {
     const v = new THREE.Vector3();
     let li = 0;
@@ -610,13 +721,13 @@ export function createMap(canvas, opts = {}) {
     };
     for (const L of labelDefs) {
       const d = Math.hypot(camera.position.x - GX(L.x), camera.position.z - GZ(L.y));
-      const s = pxPerUnit * (cam.dist / Math.max(1, d)) * 1.0;
+      const s = pxPerUnit * (cam.dist / Math.max(1, d));
       let txt = null;
       if (s > 0.85) txt = L.full;
       else if (s > 0.42) txt = L.short;
-      else if ((L.id === 'sac' || L.id === 'library') && s > 0.25) txt = L.short;
+      else if ((L.id === 'sac-lib' || L.id === 'moksha-ground') && s > 0.25) txt = L.short;
       if (!txt) continue;
-      const dimmed = state.layer === 'food' && !(L.id === 'nescafe' || L.id === 'canteen');
+      const dimmed = state.layer === 'food' && !(L.id === 'canteen' || L.id === 'safal');
       use(L.x, L.y, L.h, txt, dimmed);
     }
     if (!state.ghost && (state.layer === 'friends' || state.layer === 'events')) {
@@ -651,14 +762,12 @@ export function createMap(canvas, opts = {}) {
     applyCamera();
     for (const l of lodObjs) l.update(camera);
     if (Date.now() - refreshAt > 2500) { refreshAt = Date.now(); refreshMoksha(); }
-    // marker pulse
     if (mokPulse && mokGroup.visible) {
       const s = 1 + 0.35 * Math.sin(state.t * 2.6);
       mokPulse.scale.set(s, s, 1);
       mokPulse.material.opacity = 0.45 + 0.2 * Math.sin(state.t * 2.6);
     }
     if (venueRing.visible) venueRing.material.opacity = 0.5 + 0.3 * Math.sin(state.t * 4);
-    // route dots march
     if (state.route && routeDots.length) {
       const total = routeLen(state.route.pts);
       for (let i = 0; i < routeDots.length; i++) {
@@ -674,7 +783,6 @@ export function createMap(canvas, opts = {}) {
         }
       }
     }
-    // friend pins face camera automatically (sprites); dim non-matching layers
     const showFriends = !state.ghost && (state.layer === 'friends' || state.layer === 'events');
     for (const sp of friendSprites) sp.visible = showFriends;
     meGroup.visible = true;
@@ -682,7 +790,7 @@ export function createMap(canvas, opts = {}) {
     updateLabels();
   }
 
-  /* ---------- public API (same surface as before) ---------- */
+  /* ---------- public API ---------- */
   function setLayer(l) { state.layer = l; }
   function setGhost(v) { state.ghost = v; }
   function zoomBy(f) { fly = null; goal.dist = clamp(goal.dist * f, 220, 2600); }

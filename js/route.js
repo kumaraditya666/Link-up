@@ -6,22 +6,26 @@
  */
 export const METERS = 0.9;
 
-const ROADS = [
-  { name: 'North Ring', pts: [[140, 180], [880, 180]], w: 10, kind: 'road' },
-  { name: 'South Ring', pts: [[120, 520], [880, 520]], w: 10, kind: 'road' },
-  { name: 'West Ring', pts: [[140, 180], [140, 520]], w: 10, kind: 'road' },
-  { name: 'East Ring', pts: [[880, 180], [880, 520]], w: 10, kind: 'road' },
-  { name: 'Central Road', pts: [[500, 80], [500, 620]], w: 12, kind: 'road' },
-  { name: 'Mid Road', pts: [[160, 300], [860, 300]], w: 9, kind: 'road' },
-  { name: 'Library Walk', pts: [[400, 180], [400, 232]], w: 4, kind: 'path' },
-  { name: 'Admin Walk', pts: [[500, 80], [500, 112]], w: 5, kind: 'path' },
-  { name: 'Canteen Walk', pts: [[500, 300], [500, 400]], w: 5, kind: 'path' },
-  { name: 'Amphi Walk', pts: [[620, 300], [710, 300], [710, 408]], w: 5, kind: 'path' },
-  { name: 'Ground Trail', pts: [[300, 300], [262, 448]], w: 4, kind: 'path' },
-  { name: 'Sports Walk', pts: [[280, 520], [280, 572]], w: 4, kind: 'path' },
-  { name: 'Hostel Walk', pts: [[830, 180], [830, 214]], w: 5, kind: 'path' },
-  { name: 'Innovation Trail', pts: [[420, 300], [372, 322]], w: 4, kind: 'path' },
-  { name: 'Gate Road', pts: [[140, 520], [140, 620]], w: 8, kind: 'road' },
+export const ROADS = [
+  { name: 'West Perimeter', pts: [[60, 100], [60, 660]], w: 10, kind: 'road' },
+  { name: 'North Road', pts: [[60, 140], [620, 140]], w: 10, kind: 'road' },
+  { name: 'Hostel Lane', pts: [[250, 140], [250, 200]], w: 4, kind: 'path' },
+  { name: 'Canteen Spur', pts: [[460, 140], [460, 170]], w: 4, kind: 'path' },
+  { name: 'APJ Lane', pts: [[360, 250], [660, 250]], w: 8, kind: 'road' },
+  { name: 'Amul Link', pts: [[230, 140], [230, 320]], w: 5, kind: 'path' },
+  { name: 'NESCII Lane', pts: [[60, 300], [330, 315]], w: 5, kind: 'path' },
+  { name: 'Moksha North', pts: [[330, 265], [660, 265]], w: 8, kind: 'road' },
+  { name: 'Moksha Cross', pts: [[475, 265], [475, 330]], w: 5, kind: 'path' },
+  { name: 'Moksha South', pts: [[330, 315], [560, 330], [560, 265]], w: 5, kind: 'path' },
+  { name: 'Main Entry', pts: [[60, 450], [270, 420], [345, 380]], w: 10, kind: 'road' },
+  { name: 'Admin Spur', pts: [[345, 396], [345, 365]], w: 5, kind: 'path' },
+  { name: 'Admin Cut', pts: [[345, 365], [400, 320]], w: 4, kind: 'path' },
+  { name: 'Flag Cut', pts: [[290, 399], [330, 315]], w: 4, kind: 'path' },
+  { name: 'Academic Row', pts: [[270, 400], [660, 380]], w: 10, kind: 'road' },
+  { name: 'Stadium Way', pts: [[660, 380], [780, 440]], w: 8, kind: 'road' },
+  { name: 'East Road', pts: [[660, 140], [660, 620]], w: 10, kind: 'road' },
+  { name: 'South Road', pts: [[60, 600], [660, 600]], w: 10, kind: 'road' },
+  { name: 'Guest Walk', pts: [[450, 600], [450, 470]], w: 4, kind: 'path' },
 ];
 
 const key = (x, y) => `${Math.round(x * 10)},${Math.round(y * 10)}`;
