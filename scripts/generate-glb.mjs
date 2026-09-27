@@ -33,6 +33,21 @@ function quad(K, p1, p2, p3, p4, n, c) {
   for (const p of [p1, p2, p3, p4]) { K.pos.push(...p); K.nor.push(...n); K.col.push(...c); }
   K.idx.push(i, i + 1, i + 2, i, i + 2, i + 3);
 }
+function tri(K, p1, p2, p3, n, c) {
+  const i = K.nverts;
+  for (const p of [p1, p2, p3]) { K.pos.push(...p); K.nor.push(...n); K.col.push(...c); }
+  K.idx.push(i, i + 1, i + 2);
+}
+/* pitched gable roof (ridge along X) for landmark silhouettes */
+function gable(K, cx, baseY, cz, w, d, cRoof, cGable) {
+  const rh = Math.min(w, d) * 0.24;
+  const x0 = cx - w / 2, x1 = cx + w / 2, z0 = cz - d / 2, z1 = cz + d / 2;
+  quad(K, [x0, baseY, z1], [x1, baseY, z1], [x1, baseY + rh, cz], [x0, baseY + rh, cz], [0, 0.75, 0.66], cRoof);
+  quad(K, [x1, baseY, z0], [x0, baseY, z0], [x0, baseY + rh, cz], [x1, baseY + rh, cz], [0, 0.75, -0.66], cRoof);
+  tri(K, [x0, baseY, z0], [x0, baseY, z1], [x0, baseY + rh, cz], [-1, 0, 0], cGable);
+  tri(K, [x1, baseY, z1], [x1, baseY, z0], [x1, baseY + rh, cz], [1, 0, 0], cGable);
+  box(K, cx, baseY + rh + 0.3, cz, w + 0.6, 0.7, 1.4, cRoof);
+}
 function box(K, cx, cy, cz, sx, sy, sz, cSide, cTop = cSide, cBot = cSide) {
   const x0 = cx - sx / 2, x1 = cx + sx / 2, y0 = cy - sy / 2, y1 = cy + sy / 2, z0 = cz - sz / 2, z1 = cz + sz / 2;
   quad(K, [x0, y1, z0], [x0, y1, z1], [x1, y1, z1], [x1, y1, z0], [0, 1, 0], cTop);
@@ -142,8 +157,11 @@ function composeBuilding(spec, detail, seed) {
     box(opaque, bx, h / 2 + (detail ? 1 : 0), bz, w, h, d, wall, roof);
     const yBase = detail ? 1 : 0;
     if (detail) {
-      parapetAndRoof(ctx, bx, bz, w, d, h + yBase, roof);
-      if (w > 55) roofUnits(ctx, bx, bz, w, d, h + yBase, 2, rng, roof);
+      if (bl.gable) gable(opaque, bx, h + yBase, bz, w, d, hex('#8a4f38'), wall);
+      else {
+        parapetAndRoof(ctx, bx, bz, w, d, h + yBase, roof);
+        if (w > 55) roofUnits(ctx, bx, bz, w, d, h + yBase, 2, rng, roof);
+      }
       const floors = spec.floors, floorH = h / floors;
       const faces = [
         { f: 'S', at: bz + d / 2, c: bx, len: w }, { f: 'N', at: bz - d / 2, c: bx, len: w },
@@ -181,17 +199,17 @@ function composeBuilding(spec, detail, seed) {
 /* ---------- landmark specs (local coords, y-up; match campus grid) ---------- */
 const SPECS = {
   admin: { wall: '#9c4a34', roof: '#6e3a2a', trim: '#d8c9a8', entrance: 'W', floors: 3, mural: true, blocks: [{ ox: 0, oz: 0, w: 54, d: 112, h: 15 }, { ox: 30, oz: -30, w: 26, d: 36, h: 11 }, { ox: 30, oz: 30, w: 26, d: 36, h: 11 }] },
-  library: { wall: '#c8bfae', roof: '#6f7d8c', trim: '#0e7490', entrance: 'S', floors: 3, stepsWide: 34, blocks: [{ ox: 0, oz: 0, w: 112, d: 50, h: 13, glass: 'S' }, { ox: -70, oz: -4, w: 40, d: 36, h: 9 }] },
-  apj: { wall: '#b7bdc9', roof: '#5d6673', trim: '#8a93a3', entrance: 'W', floors: 3, blocks: [{ ox: -10, oz: 0, w: 120, d: 42, h: 14 }, { ox: 55, oz: 34, w: 34, d: 62, h: 14 }] },
-  academic: { wall: '#b7bdc9', roof: '#5d6673', trim: '#31437c', entrance: 'S', floors: 3, blocks: [{ ox: 0, oz: -4, w: 64, d: 40, h: 13 }, { ox: -40, oz: 12, w: 22, d: 44, h: 10 }, { ox: 40, oz: 12, w: 22, d: 44, h: 10 }] },
+  library: { wall: '#c8bfae', roof: '#6f7d8c', trim: '#0e7490', entrance: 'S', floors: 3, stepsWide: 34, blocks: [{ ox: 0, oz: 0, w: 112, d: 50, h: 13, glass: 'S', gable: true }, { ox: -70, oz: -4, w: 40, d: 36, h: 9 }] },
+  apj: { wall: '#b7bdc9', roof: '#5d6673', trim: '#8a93a3', entrance: 'W', floors: 3, blocks: [{ ox: -10, oz: 0, w: 120, d: 42, h: 14, gable: true }, { ox: 55, oz: 34, w: 34, d: 62, h: 14 }] },
+  academic: { wall: '#b7bdc9', roof: '#5d6673', trim: '#31437c', entrance: 'S', floors: 3, blocks: [{ ox: 0, oz: -4, w: 64, d: 40, h: 13, gable: true }, { ox: -40, oz: 12, w: 22, d: 44, h: 10 }, { ox: 40, oz: 12, w: 22, d: 44, h: 10 }] },
   gym: { wall: '#bcc8b4', roof: '#3f5a44', trim: '#166534', entrance: 'W', floors: 1, doorWide: 12, blocks: [{ ox: 0, oz: 0, w: 40, d: 34, h: 5 }] },
   girls: { wall: '#c2b8a4', roof: '#6e6252', trim: '#334155', entrance: 'S', floors: 4, blocks: [{ ox: 0, oz: 0, w: 96, d: 36, h: 14 }] },
   guest: { wall: '#c9c2b2', roof: '#6e6252', trim: '#6e6252', entrance: 'S', floors: 2, blocks: [{ ox: 0, oz: 0, w: 44, d: 28, h: 7 }] },
   design: { wall: '#b9c6d4', roof: '#3d4c5e', trim: '#7d8aa0', entrance: 'S', floors: 3, blocks: [{ ox: 0, oz: 0, w: 70, d: 40, h: 12, glass: 'S' }] },
   smart: { wall: '#cfc4d8', roof: '#4c3a6e', trim: '#8a93a3', entrance: 'S', floors: 2, blocks: [{ ox: 0, oz: 0, w: 52, d: 36, h: 10, glass: 'S' }] },
   kiosk: { wall: '#d8b48c', roof: '#8a5a24', trim: '#a33d1f', entrance: 'S', floors: 1, blocks: [{ ox: 0, oz: 0, w: 16, d: 12, h: 4 }] },
-  canteen: { wall: '#d9c39a', roof: '#8a6a34', trim: '#7c4a12', entrance: 'S', floors: 1, umbrellas: 4, doorWide: 16, blocks: [{ ox: -8, oz: 0, w: 100, d: 44, h: 7 }, { ox: 58, oz: -6, w: 34, d: 26, h: 5 }] },
-  hostel: { wall: '#c2b8a4', roof: '#6e6252', trim: '#334155', entrance: 'S', floors: 5, blocks: [{ ox: 0, oz: 0, w: 100, d: 36, h: 17 }, { ox: -40, oz: 24, w: 24, d: 30, h: 13 }, { ox: 40, oz: 24, w: 24, d: 30, h: 13 }] },
+  canteen: { wall: '#d9c39a', roof: '#8a6a34', trim: '#7c4a12', entrance: 'S', floors: 1, umbrellas: 4, doorWide: 16, blocks: [{ ox: -8, oz: 0, w: 100, d: 44, h: 7, gable: true }, { ox: 58, oz: -6, w: 34, d: 26, h: 5 }] },
+  hostel: { wall: '#c2b8a4', roof: '#6e6252', trim: '#334155', entrance: 'S', floors: 5, blocks: [{ ox: 0, oz: 0, w: 100, d: 36, h: 17, gable: true }, { ox: -40, oz: 24, w: 24, d: 30, h: 13 }, { ox: 40, oz: 24, w: 24, d: 30, h: 13 }] },
 };
 /* campus grid placement (reference-image layout) */
 const PLACE = {

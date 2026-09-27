@@ -306,7 +306,7 @@ export function createMap(canvas, opts = {}) {
         const nx = Math.max(1, Math.floor((x1 - x0 - 24) / 58));
         const nz = Math.max(1, Math.floor((y1 - y0 - 24) / 58));
         for (let ix = 0; ix < nx; ix++) for (let iz = 0; iz < nz; iz++) {
-          if (rng() < 0.12) continue;
+          if (rng() < 0.06) continue;
           const bx = x0 + 20 + ((x1 - x0 - 40) * (ix + 0.5)) / nx + (rng() - 0.5) * 10;
           const by = y0 + 20 + ((y1 - y0 - 40) * (iz + 0.5)) / nz + (rng() - 0.5) * 10;
           const h = kind === 'tower' ? 26 + rng() * 22 : kind === 'apt' ? 10 + rng() * 14 : 6 + rng() * 6;
@@ -373,13 +373,13 @@ export function createMap(canvas, opts = {}) {
       {
         const skyGeo = new THREE.BoxGeometry(1, 1, 1);
         skyGeo.translate(0, 0.5, 0);
-        const N = 24;
+        const N = 36;
         const sky = new THREE.InstancedMesh(skyGeo, new THREE.MeshStandardMaterial({ roughness: 1 }), N);
         const d = new THREE.Object3D(), col = new THREE.Color();
         const skyCols = [0x9aa0b0, 0xb0a89a, 0x8a94a4, 0xc0b8a8];
         for (let i = 0; i < N; i++) {
           const a = (i / N) * TAU + 0.2;
-          const rr = 1700 + ((i * 397) % 700);
+          const rr = 1700 + ((i * 397) % 1100);
           d.position.set(Math.cos(a) * rr, 0, Math.sin(a) * rr * 0.85);
           d.rotation.y = a; d.scale.set(50 + ((i * 53) % 40), 60 + ((i * 89) % 90), 50 + ((i * 61) % 40));
           d.updateMatrix();
@@ -560,7 +560,7 @@ export function createMap(canvas, opts = {}) {
     const rng = mulberry(20260327);
     const spots = [];
     let guard = 0;
-    while (spots.length < 170 && guard++ < 5000) {
+    while (spots.length < 250 && guard++ < 7000) {
       const x = 20 + rng() * 900, y = 10 + rng() * 670;
       if (!inPoly(x, y)) continue;
       if (FOOT.some(([fx, fy, hw, hd]) => Math.abs(x - fx) < hw + 10 && Math.abs(y - fy) < hd + 10)) continue;
@@ -935,26 +935,19 @@ export function createMap(canvas, opts = {}) {
     return u;
   }
 
-  /* ---------- labels ---------- */
+  /* ---------- labels (priority-ordered, collision-rejected) ---------- */
   const labelDefs = BUILDINGS.map((b) => ({
     id: b.id, short: b.label, full: b.label.toUpperCase(), x: b.x, y: b.y, h: (HEIGHTS[b.id] || 10) + 8,
+    prio: ['sac-lib', 'moksha-ground', 'admin', 'sports'].includes(b.id) ? 0 : 1,
   }));
   function updateLabels() {
     const v = new THREE.Vector3();
-    let li = 0;
+    const items = [];
     const pxPerUnit = (state.h / 2) / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) / cam.dist;
-    const use = (x, y, z, text, dimmed, person) => {
+    const push = (x, y, z, text, dimmed, person, prio) => {
       v.set(GX(x), z, GZ(y)).project(camera);
       if (v.z > 1 || v.x < -1.05 || v.x > 1.05 || v.y < -1.05 || v.y > 1.05) return;
-      const el = getLabel(li++);
-      el.style.display = 'block';
-      el.style.left = ((v.x * 0.5 + 0.5) * state.w) + 'px';
-      el.style.top = ((-v.y * 0.5 + 0.5) * state.h) + 'px';
-      el.textContent = (person && person !== 'you' ? '● ' : '') + text;
-      el.style.opacity = dimmed ? 0.4 : 1;
-      if (person === 'you') { el.style.background = '#0b0e05'; el.style.borderColor = '#b7ff2a'; el.style.color = '#b7ff2a'; }
-      else if (person) { el.style.background = '#b7ff2a'; el.style.borderColor = '#b7ff2a'; el.style.color = '#0b0e05'; }
-      else { el.style.background = 'rgba(6,10,21,0.8)'; el.style.borderColor = 'rgba(255,255,255,0.18)'; el.style.color = '#e6ebff'; }
+      items.push({ x: (v.x * 0.5 + 0.5) * state.w, y: (-v.y * 0.5 + 0.5) * state.h, text, dimmed, person, prio });
     };
     for (const L of labelDefs) {
       const d = Math.hypot(camera.position.x - GX(L.x), camera.position.z - GZ(L.y));
@@ -965,18 +958,36 @@ export function createMap(canvas, opts = {}) {
       else if ((L.id === 'sac-lib' || L.id === 'moksha-ground') && s > 0.25) txt = L.short;
       if (!txt) continue;
       const dimmed = state.layer === 'food' && !(L.id === 'canteen' || L.id === 'safal');
-      use(L.x, L.y, L.h, txt, dimmed);
+      push(L.x, L.y, L.h, txt, dimmed, null, L.prio);
     }
     if (!state.ghost && (state.layer === 'friends' || state.layer === 'events')) {
       for (const f of friendsRef.list) {
         if (!f.online) continue;
-        use(f.x, f.y, 26, f.name.split(' ')[0], false, 'friend');
+        push(f.x, f.y, 26, f.name.split(' ')[0], false, 'friend', -1);
       }
     }
-    use(ME_POS.x, ME_POS.y, 14, 'YOU', false, 'you');
+    push(ME_POS.x, ME_POS.y, 14, 'YOU', false, 'you', -2);
     if (state.mokshaEventId) {
       const ev = EventStore.get(state.mokshaEventId);
-      if (ev && ev.campus_x != null) use(ev.campus_x, ev.campus_y, 26, `📍 ${ev.venue_name}`, false);
+      if (ev && ev.campus_x != null) push(ev.campus_x, ev.campus_y, 26, `📍 ${ev.venue_name}`, false, 'you', -3);
+    }
+    items.sort((a, b) => a.prio - b.prio);
+    const placed = [];
+    let li = 0;
+    for (const it of items) {
+      if (li >= 40) break;
+      const w = it.text.length * 6.5 + 22, h = 26;
+      if (placed.some((p) => it.x - w / 2 < p[2] && it.x + w / 2 > p[0] && it.y - h < p[3] && it.y > p[1])) continue;
+      placed.push([it.x - w / 2, it.y - h, it.x + w / 2, it.y]);
+      const el = getLabel(li++);
+      el.style.display = 'block';
+      el.style.left = it.x + 'px';
+      el.style.top = it.y + 'px';
+      el.textContent = (it.person && it.person !== 'you' ? '● ' : '') + it.text;
+      el.style.opacity = it.dimmed ? 0.4 : 1;
+      if (it.person === 'you') { el.style.background = '#0b0e05'; el.style.borderColor = '#b7ff2a'; el.style.color = '#b7ff2a'; }
+      else if (it.person) { el.style.background = '#b7ff2a'; el.style.borderColor = '#b7ff2a'; el.style.color = '#0b0e05'; }
+      else { el.style.background = 'rgba(6,10,21,0.8)'; el.style.borderColor = 'rgba(255,255,255,0.18)'; el.style.color = '#e6ebff'; }
     }
     for (let i = li; i < labelPool.length; i++) labelPool[i].style.display = 'none';
   }
