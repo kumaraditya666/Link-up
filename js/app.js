@@ -1,6 +1,7 @@
 /* Link Up — NSUT, but connected. App controller (map + social + Moksha live layer) */
 import { ME, SPOTS, FRIENDS, PLACES, EVENTS, TRAILS, THREADS, QUICK, BUILDINGS } from './data.js';
 import { createMap } from './map.js';
+import { Net } from './net.js';
 import {
   CATEGORIES, VENUES, venueById,
   EventStore, eventStatus, statusLabel, festivalState, nextEvent, liveEvent,
@@ -38,7 +39,20 @@ const S = {
   mokshaCat: 'All',
   mokshaCardId: null,
   mokshaHomeOff: false,
+  liveReq: null,
 };
+/* ---------- live helpers (Phase 3: server roster merges with mock friends) ---------- */
+function getPerson(id) { return FRIENDS.find((x) => x.id === id) || Net.person(id) || null; }
+function livePeople() { return Net.live ? Net.people() : []; }
+function refreshLivePins() { map.friendsRef.list = [...FRIENDS, ...livePeople()]; }
+function updateNetPill() {
+  const pill = $('#netPill');
+  if (!pill) return;
+  pill.classList.toggle('live', Net.live);
+  pill.classList.toggle('mock', !Net.live);
+  $('#netPillTxt').textContent = Net.live ? 'LIVE' : 'MOCK';
+  pill.title = Net.live ? `Live server: ${Net.base} — click to reconnect` : 'Mock mode (no server) — click to retry';
+}
 function persist() {
   store.set('ghost', S.ghost); store.set('session', S.session);
   store.set('outgoing', S.outgoing); store.set('incoming', S.incoming);
@@ -91,7 +105,8 @@ function onSelect(hit) {
   if (!hit) { tip.hidden = true; return; }
   if (hit.kind === 'moksha') { tip.hidden = true; openMokshaCard(hit.id); return; }
   if (hit.kind === 'friend') {
-    const f = FRIENDS.find((x) => x.id === hit.id);
+    const f = getPerson(hit.id);
+    if (!f) { tip.hidden = true; return; }
     tip.innerHTML = `<strong>${f.name}</strong><br><span class="muted">${f.spot} · ${f.dist} m · ${f.vibe}</span><br><button class="mini-btn go" id="tipLu">Link Up ⚡</button> <button class="mini-btn" id="tipChat">Chat</button>`;
     tip.hidden = false;
     tip.style.left = '50%'; tip.style.top = '34%';
@@ -152,7 +167,7 @@ $('#mokshaChip').onclick = () => setMokshaFilter(!S.mokshaFilter);
 
 /* ---------- sheet (map bottom) ---------- */
 function nearbySorted() {
-  return [...FRIENDS].filter((f) => f.online && !S.ghost).sort((a, b) => a.dist - b.dist).slice(0, 6);
+  return [...FRIENDS, ...livePeople()].filter((f) => f.online && !S.ghost).sort((a, b) => a.dist - b.dist).slice(0, 6);
 }
 function renderSheet() {
   const wrap = $('#sheetCards');
@@ -342,7 +357,17 @@ function renderFriends() {
   let list = [...FRIENDS];
   if (S.friendFilter === 'online') list = list.filter((f) => f.online);
   if (S.friendFilter === 'linked') list = list.filter((f) => S.session?.withId === f.id);
-  grid.innerHTML = list.map((f) => {
+  const live = livePeople();
+  const liveHtml = live.length && S.friendFilter !== 'linked'
+    ? `<h2 style="grid-column:1/-1;margin:4px 2px 0">Live on campus ⚡ <span class="muted">${live.length} via server</span></h2>` + live.map((f) => `
+    <div class="card" style="border-color:#a3e63555"><div class="row"><span class="avatar" style="background:${f.grad}">${f.short.slice(0, 1)}</span>
+      <div style="flex:1"><h3>${f.name} ${f.bot ? '<small>🤖</small>' : ''}</h3><small>${f.dept} · ${f.spot} · ${f.dist} m</small></div>
+      <span class="dot on"></span></div>
+      <p class="muted" style="margin:8px 0">${f.vibe}</p>
+      <div class="row" style="gap:8px"><span class="pill live">● live</span><span style="flex:1"></span>
+      <button class="mini-btn" data-chat="${f.id}">Chat</button>
+      <button class="mini-btn go" data-lu="${f.id}" ${S.ghost ? 'disabled title="Ghosted"' : ''}>Link Up ⚡</button></div></div>`).join('') : '';
+  grid.innerHTML = liveHtml + list.map((f) => {
     const linked = S.session?.withId === f.id;
     const out = S.outgoing?.toId === f.id;
     return `<div class="card"><div class="row"><span class="avatar" style="background:${f.grad}">${f.short.slice(0, 1)}</span>
@@ -380,7 +405,7 @@ $$('.seg [data-f]').forEach((b) => (b.onclick = () => {
 
 /* ---------- Link Up flow ---------- */
 function openLinkUp(fid) {
-  const f = FRIENDS.find((x) => x.id === fid) || FRIENDS[0];
+  const f = getPerson(fid) || FRIENDS[0];
   if (S.ghost) { toast('👻 Ghost Mode is on — go visible to link up.'); go('nearby'); return; }
   if (S.session) { toast(`Already linked up with ${S.session.withName} 🤝`); showLinked(); return; }
   if (!f.online) { toast(`${f.name.split(' ')[0]} is offline right now.`); return; }
@@ -402,9 +427,17 @@ $$('#incDur button').forEach((b) => (b.onclick = () => {
   $$('#incDur button').forEach((x) => x.classList.remove('active'));
   b.classList.add('active'); S.incDur = +b.dataset.d;
 }));
-$('#sendLinkUp').onclick = () => {
-  const f = FRIENDS.find((x) => x.id === S.pendingLinkUp);
+$('#sendLinkUp').onclick = async () => {
+  const f = getPerson(S.pendingLinkUp);
   $('#linkupModal').hidden = true;
+  if (f.live && Net.live) {
+    S.outgoing = { toId: f.id, live: true };
+    persist(); renderFriends();
+    const r = await Net.sendLinkup(f.id, S.spotPick, S.durPick);
+    if (!r.data.ok) { S.outgoing = null; persist(); renderFriends(); toast(r.data.error === 'already linked' ? 'Finish your current hangout first 🤝' : 'They went offline — try again 👀'); return; }
+    toast(`⚡ Live Link Up sent to ${f.name.split(' ')[0]} — waiting for accept…`);
+    return; // server SSE delivers accept / decline / expiry
+  }
   S.outgoing = { toId: f.id, expires: Date.now() + 2 * 60 * 1000 };
   persist(); renderFriends();
   toast(`⚡ Link Up sent — “Aditya wants to link up.”`);
@@ -421,7 +454,8 @@ setTimeout(() => {
 }, 9000);
 
 function showIncoming(fid) {
-  const f = FRIENDS.find((x) => x.id === fid);
+  const f = getPerson(fid);
+  if (!f) return;
   $('#incAvatar').textContent = f.short.slice(0, 1);
   $('#incAvatar').style.background = f.grad;
   $('#incTitle').textContent = `${f.name.split(' ')[0]} wants to link up.`;
@@ -429,8 +463,27 @@ function showIncoming(fid) {
   $('#incomingModal').hidden = false;
   $('#incomingModal').dataset.fid = fid;
 }
-$('#incDecline').onclick = () => { declineIncoming($('#incomingModal').dataset.fid); $('#incomingModal').hidden = true; };
-$('#incAccept').onclick = () => { const fid = $('#incomingModal').dataset.fid; $('#incomingModal').hidden = true; acceptIncoming(fid); };
+$('#incDecline').onclick = async () => {
+  const fid = $('#incomingModal').dataset.fid;
+  $('#incomingModal').hidden = true;
+  if (S.liveReq && S.liveReq.from === fid && Net.live) {
+    S.liveReq = null;
+    await Net.respondLinkup(fid, false);
+  }
+  declineIncoming(fid);
+};
+$('#incAccept').onclick = async () => {
+  const fid = $('#incomingModal').dataset.fid;
+  $('#incomingModal').hidden = true;
+  if (S.liveReq && S.liveReq.from === fid && Net.live) {
+    const req = S.liveReq; S.liveReq = null;
+    const r = await Net.respondLinkup(fid, true, S.incDur);
+    if (r.data.ok) startSession(fid, r.data.spot, 0, 'incoming', r.data.endsAt ?? null);
+    else toast('That request expired ⏳');
+    return;
+  }
+  acceptIncoming(fid);
+};
 function declineIncoming(fid) {
   S.incomingQueue = S.incomingQueue.filter((q) => q.id !== fid);
   S.incoming = S.incoming.filter((q) => q.id !== fid);
@@ -441,12 +494,12 @@ function acceptIncoming(fid) {
   S.incomingQueue = S.incomingQueue.filter((q) => q.id !== fid);
   startSession(fid, f.spot.replace('Near ', ''), S.incDur, 'incoming');
 }
-function startSession(fid, spot, durMin, dir) {
-  const f = FRIENDS.find((x) => x.id === fid);
+function startSession(fid, spot, durMin, dir, endsAtOverride = null) {
+  const f = getPerson(fid) || { name: 'Someone', short: '?' };
   S.session = {
     withId: fid, withName: f.name.split(' ')[0], fullName: f.name,
     spot: spot.startsWith('Near') ? spot : `Near ${spot}`,
-    endsAt: durMin === 0 ? null : Date.now() + durMin * 60 * 1000,
+    endsAt: endsAtOverride !== null && endsAtOverride !== undefined ? endsAtOverride : (durMin === 0 ? null : Date.now() + durMin * 60 * 1000),
     totalMin: durMin, startedAt: Date.now(), dir,
   };
   S.outgoing = null;
@@ -462,9 +515,13 @@ function showLinked() {
 }
 $('#linkedEnd').onclick = () => { $('#linkedModal').hidden = true; endSession('You ended the hangout.'); };
 $('#linkedChat').onclick = () => { $('#linkedModal').hidden = true; openChat(S.session.withId); go('messages'); };
-function endSession(msg) {
+function endSession(msg, remote = false) {
   if (!S.session) return;
-  pushMsg(S.session.withId, 'me', 'Ending our link up — that was fun! 🤙');
+  const wasLive = !!getPerson(S.session.withId)?.live;
+  if (!remote) {
+    pushMsg(S.session.withId, 'me', 'Ending our link up — that was fun! 🤙');
+    if (wasLive && Net.live) Net.endLink();
+  }
   S.session = null; persist(); updateBanner(); renderFriends(); renderSheet();
   toast(msg || 'Link Up ended.');
 }
@@ -508,7 +565,7 @@ $('#linkupBannerChat').onclick = () => { openChat(S.session.withId); go('message
 
 /* ---------- Nearby + Ghost ---------- */
 function renderNearby() {
-  const list = [...FRIENDS].sort((a, b) => a.dist - b.dist);
+  const list = [...FRIENDS, ...livePeople()].sort((a, b) => a.dist - b.dist);
   const dots = $('#radarDots');
   dots.innerHTML = S.ghost ? '' : list.filter((f) => f.online).slice(0, 6).map((f, i) => {
     const ang = (i / 6) * Math.PI * 2 + 0.6;
@@ -532,6 +589,7 @@ function setGhost(v) {
   $('#ghostToggleTop').setAttribute('aria-pressed', String(v));
   $('#ghostStateTop').textContent = v ? 'On' : 'Off';
   map.setGhost(v);
+  Net.setPaused(v);
   persist(); renderNearby(); renderSheet();
   toast(v ? '👻 Ghost Mode on — you’re hidden.' : '⚡ You’re visible — friends can link up!');
 }
@@ -744,7 +802,7 @@ function renderThreads() {
     if (el) { el.hidden = !total; el.textContent = total; }
   }
   $('#threadList').innerHTML = ids.map((id) => {
-    const f = FRIENDS.find((x) => x.id === id) || { name: id, grad: 'var(--grad)', short: '?' };
+    const f = getPerson(id) || { name: id, grad: 'var(--grad)', short: '?' };
     const last = S.inbox[id].at(-1);
     return `<button class="thread ${S.activeChat === id ? 'active' : ''}" data-th="${id}">
       <span class="avatar" style="background:${f.grad}">${(f.short || '?').slice(0, 1)}</span>
@@ -753,16 +811,21 @@ function renderThreads() {
   $$('#threadList [data-th]').forEach((b) => (b.onclick = () => openChat(b.dataset.th)));
 }
 function openChat(fid) {
+  const f = getPerson(fid);
+  if (!f) return;
   S.activeChat = fid;
   S.unread[fid] = 0; persist();
-  const f = FRIENDS.find((x) => x.id === fid);
   $('#chatEmpty').hidden = true; $('#chatActive').hidden = false;
   $('#chatName').textContent = f.name;
-  $('#chatAvatar').textContent = f.short.slice(0, 1);
+  $('#chatAvatar').textContent = (f.short || '?').slice(0, 1);
   $('#chatAvatar').style.background = f.grad;
   $('#chatStatus').textContent = f.online ? `● live · ${f.spot}` : '○ offline';
   $('#quickReplies').innerHTML = QUICK.map((q) => `<button>${q}</button>`).join('');
   $$('#quickReplies button').forEach((b) => (b.onclick = () => sendChat(b.textContent)));
+  if (f.live && Net.live) {
+    $('#chatBubbles').innerHTML = '<p class="muted">Loading live thread…</p>';
+    Net.history(fid).then((h) => { S.inbox[fid] = h; persist(); if (S.activeChat === fid) renderChat(); });
+  }
   renderThreads(); renderChat();
 }
 function renderChat() {
@@ -772,9 +835,10 @@ function renderChat() {
 }
 function sendChat(text) {
   text = (text || '').trim(); if (!text || !S.activeChat) return;
-  pushMsg(S.activeChat, 'me', text);
-  $('#chatInput').value = '';
   const fid = S.activeChat;
+  pushMsg(fid, 'me', text);
+  $('#chatInput').value = '';
+  if (getPerson(fid)?.live && Net.live) { Net.sendChat(fid, text); return; } // server delivers
   const replies = ['Bet 😎', 'On my way!!', 'Haha fr', 'SAC in 10? ⚡', 'Okay okay, link up? 🤝'];
   setTimeout(() => { if (S.activeChat) pushMsg(fid, 'them', replies[Math.floor(Math.random() * replies.length)]); }, 1600);
 }
@@ -829,6 +893,33 @@ $('#installBtn').onclick = async () => {
 /* ---------- boot ---------- */
 const renderers = { map: () => { renderSheet(); refreshMokshaHome(); }, friends: renderFriends, nearby: renderNearby, places: renderPlaces, explore: renderExplore, events: renderEvents, messages: renderThreads };
 function boot() {
+  updateNetPill();
+  Net.on('mode', () => { updateNetPill(); refreshLivePins(); renderSheet(); if (S.view === 'friends') renderFriends(); });
+  Net.on('roster', () => {
+    refreshLivePins();
+    if (S.view === 'map') renderSheet();
+    if (S.view === 'friends') renderFriends();
+    if (S.view === 'nearby') renderNearby();
+  });
+  Net.on('linkup_request', (m) => {
+    if (S.ghost || S.session || !$('#incomingModal').hidden) return;
+    S.liveReq = { from: m.from, spot: m.spot, durMin: m.durMin };
+    showIncoming(m.from);
+    toast(`⚡ ${(getPerson(m.from)?.name || 'Someone').split(' ')[0]} wants to link up (live).`);
+  });
+  Net.on('linkup_accept', (m) => { S.outgoing = null; startSession(m.from, m.spot, 0, 'outgoing', m.endsAt ?? null); });
+  Net.on('linkup_decline', () => { S.outgoing = null; persist(); renderFriends(); toast('They declined — another time 🤙'); });
+  Net.on('linkup_expired', () => { S.outgoing = null; persist(); renderFriends(); toast('Live request expired ⏳'); });
+  Net.on('session_end', (m) => endSession(m.expired ? 'Live Link Up ended ⏳' : 'They ended the hangout.', true));
+  Net.on('chat', (m) => pushMsg(m.from, 'them', m.text));
+  Net.init({ name: ME.name, dept: ME.dept }).then((live) => {
+    if (live) { toast('⚡ Connected to live server — real people, real requests.'); refreshLivePins(); }
+  });
+  $('#netPill').onclick = () => {
+    updateNetPill();
+    if (!Net.live) { toast('Looking for live server…'); Net.init({ name: ME.name, dept: ME.dept }); }
+    else toast(`Live via ${Net.base} · ${Net.roster.length} on campus`);
+  };
   setGhost(S.ghost);
   $('#statEvents').textContent = S.rsvp.length;
   const start = (location.hash || '#/map').replace('#/', '');

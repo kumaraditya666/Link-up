@@ -32,6 +32,10 @@ input{font-family:inherit}
 .ghost-pill.on{border-color:#a78bfa88;background:#7c3aed22}
 .ghost-pill.on em{color:#c4b5fd}
 .icon-btn{width:38px;height:38px;border-radius:12px;border:1px solid var(--line);background:#ffffff0c;color:var(--txt)}
+.net-pill{display:flex;align-items:center;gap:6px;border:1px solid var(--line);background:#ffffff0c;color:var(--mut);border-radius:99px;padding:8px 11px;font-size:10px;font-weight:800;letter-spacing:1px}
+.net-pill i{width:8px;height:8px;border-radius:99px;background:#525c7a}
+.net-pill.live{color:var(--lime);border-color:#a3e63555}
+.net-pill.live i{background:var(--lime);box-shadow:0 0 8px var(--lime);animation:blink 1.6s infinite}
 .avatar-btn{width:38px;height:38px;border-radius:50%;border:2px solid transparent;background:linear-gradient(#121a38,#121a38) padding-box,var(--grad) border-box;color:#fff;font-weight:800}
 /* sidenav */
 #sidenav{display:none}
