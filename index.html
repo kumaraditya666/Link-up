@@ -94,7 +94,7 @@
       <p id="sideStats">8 friends live · 5 busy spots</p>
       <button id="sideLinkUp" class="btn-primary">Link Up ⚡</button>
     </div>
-    <div class="side-foot">Link Up — NSUT · build 17</div>
+    <div class="side-foot">Link Up — NSUT · build 18</div>
   </aside>
 
   <!-- ===== Main ===== -->
@@ -404,7 +404,24 @@
       <div class="stat-row"><div><strong id="statFriends">8</strong><small>friends</small></div><div><strong id="statPlaces">3</strong><small>places</small></div><div><strong id="statEvents">2</strong><small>going</small></div></div>
       <div id="badgeShelf" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"></div>
       <div id="blockedWrap" hidden style="margin-bottom:10px"><small class="muted">Blocked users</small><div id="blockedList" style="display:flex;flex-direction:column;gap:6px;margin-top:6px"></div></div>
+      <div class="admin-grid" style="margin-bottom:10px">
+        <small class="muted" id="storageInfo"></small>
+        <button class="mini-btn big-btn" id="wipeData">Clear local data</button>
+      </div>
+      <small class="muted">Link Up · build 18 · NSUT, but connected.</small>
       <button class="btn-primary big" id="profileLinkUp">Link Up with someone ⚡</button>
+    </div>
+  </div>
+
+  <!-- ===== Onboarding ===== -->
+  <div id="onboardModal" class="modal" hidden role="dialog" aria-modal="true" aria-label="Welcome">
+    <div class="modal-card center">
+      <div class="modal-glow"></div>
+      <div class="big" id="obEmoji">🗺️</div>
+      <h2 id="obTitle" style="letter-spacing:2px">YOUR CAMPUS IN 3D</h2>
+      <p class="muted" id="obText">Drag to explore NSUT — friends, venues and fest grounds, live.</p>
+      <div class="row2"><button class="btn-decline" id="obSkip">Skip</button><button class="btn-primary big" id="obNext">Next →</button></div>
+      <small class="muted" id="obDots">● ○ ○</small>
     </div>
   </div>
 

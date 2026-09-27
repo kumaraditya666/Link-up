@@ -66,7 +66,7 @@ function updateNetPill() {
 function renderDebug() {
   updateNetPill();
   const lines = [
-    `build: 15 · mode: ${Net.mode.toUpperCase()} · ghost: ${S.ghost ? 'ON' : 'off'}`,
+    `build: 18 · mode: ${Net.mode.toUpperCase()} · ghost: ${S.ghost ? 'ON' : 'off'}`,
     `server: ${Net.base || '(none)'}`,
     `me: ${Net.me ? `${Net.me.name} (${Net.me.id})` : '(not joined)'}`,
     `profile: ${myName()} · ${S.profile.dept}`,
@@ -1195,6 +1195,44 @@ document.addEventListener('keydown', (e) => {
 });
 document.addEventListener('click', (e) => { if (!e.target.closest('#searchResults') && !e.target.closest('.search-wrap')) searchBox.hidden = true; });
 
+/* ---------- Onboarding + settings ---------- */
+const OB_STEPS = [
+  { e: '🗺️', t: 'YOUR CAMPUS IN 3D', x: 'Drag to explore NSUT — friends, venues and fest grounds, live.' },
+  { e: '⚡', t: 'LINK UP', x: 'Send a hangout, get an accept, meet at the spot. Temporary by design.' },
+  { e: '🎭', t: 'MOKSHA LIVE', x: 'Events, routes, check-ins and announcements — the fest layer.' },
+];
+let obStep = 0;
+function showOnboard() {
+  obStep = 0;
+  paintOb();
+  $('#onboardModal').hidden = false;
+}
+function paintOb() {
+  const s = OB_STEPS[obStep];
+  $('#obEmoji').textContent = s.e;
+  $('#obTitle').textContent = s.t;
+  $('#obText').textContent = s.x;
+  $('#obDots').textContent = OB_STEPS.map((_, i) => (i === obStep ? '●' : '○')).join(' ');
+  $('#obNext').textContent = obStep === OB_STEPS.length - 1 ? 'Start ⚡' : 'Next →';
+}
+function hideOnboard() {
+  $('#onboardModal').hidden = true;
+  try { localStorage.setItem('linkup.onboarded', '1'); } catch {}
+}
+$('#obSkip').onclick = hideOnboard;
+$('#obNext').onclick = () => { if (obStep < OB_STEPS.length - 1) { obStep++; paintOb(); } else hideOnboard(); };
+function storageKB() {
+  try {
+    let n = 0;
+    for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); n += (k?.length || 0) + (localStorage.getItem(k)?.length || 0); }
+    return (n / 1024).toFixed(1);
+  } catch { return '?'; }
+}
+$('#wipeData').onclick = () => {
+  if (!confirm('Clear all local Link Up data on this device?')) return;
+  try { localStorage.clear(); } catch {}
+  location.reload();
+};
 /* ---------- Profile ---------- */
 function openProfile() {
   $('#statFriends').textContent = FRIENDS.length;
@@ -1206,6 +1244,7 @@ function openProfile() {
   $('#ntLinkup').checked = Notify.prefs.linkup;
   $('#ntMoksha').checked = Notify.prefs.moksha;
   $('#profileNote').textContent = Net.live ? 'Name change rejoins the live server (page reloads).' : '';
+  $('#storageInfo').textContent = `Local data: ~${storageKB()} KB on this device`;
   const earned = Social.earnedBadges(TRAILS, S.visited, Social.linkupCount());
   $('#badgeShelf').innerHTML = Social.BADGES.map((b) => `<span class="tag" style="${earned.includes(b.id) ? 'color:var(--lime);border-color:#a3e63555' : 'opacity:.45'}" title="${b.desc}">${earned.includes(b.id) ? b.name : '🔒 ' + b.name.split(' ')[0]}</span>`).join('');
   $('#blockedWrap').hidden = true;
@@ -1262,6 +1301,7 @@ $('#installBtn').onclick = async () => {
 const renderers = { map: () => { renderSheet(); refreshMokshaHome(); }, friends: renderFriends, nearby: renderNearby, places: renderPlaces, explore: renderExplore, events: renderEvents, messages: renderThreads };
 function boot() {
   updateNetPill();
+  try { if (!localStorage.getItem('linkup.onboarded')) setTimeout(showOnboard, 1200); } catch {}
   Net.on('mode', () => { updateNetPill(); refreshLivePins(); renderSheet(); if (S.view === 'friends') renderFriends(); });
   Net.on('roster', () => {
     refreshLivePins();
