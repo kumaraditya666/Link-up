@@ -1,6 +1,7 @@
 /* Link Up — NSUT, but connected. App controller (map + social + Moksha live layer) build 6 */
 import { ME, SPOTS, FRIENDS, PLACES, EVENTS, TRAILS, THREADS, QUICK, BUILDINGS } from './data.js';
 import { createMap } from './map.js';
+import { route } from './route.js';
 import { Net } from './net.js';
 import {
   CATEGORIES, VENUES, venueById,
@@ -305,32 +306,31 @@ function renderMokshaHub() {
   }));
 }
 
-/* ----- directions (approximate walking route along campus roads) ----- */
+/* ----- directions (turn-by-turn over the campus road graph) ----- */
 function buildRouteTo(ev) {
   const A = map.mePos, vx = ev.campus_x, vy = ev.campus_y;
+  try {
+    const r = route([A.x, A.y], [vx, vy]);
+    if (r && r.pts.length >= 2) return { pts: r.pts, to: { x: vx, y: vy }, steps: r.steps, meters: r.meters, mins: r.mins, approximate: r.approximate };
+  } catch {}
+  // legacy fallback (straight connectors along main roads)
   const pts = [[A.x, A.y], [500, A.y], [500, vy]];
   if (vy > 400) pts.push([500, 520], [vx, 520]);
   else if (vy < 240) pts.push([500, 180], [vx, 180]);
   pts.push([vx, vy]);
-  return { pts, to: { x: vx, y: vy } };
-}
-function routeStats(pts) {
-  let u = 0;
-  for (let i = 0; i < pts.length - 1; i++) u += Math.hypot(pts[i + 1][0] - pts[i][0], pts[i + 1][1] - pts[i][1]);
-  const m = Math.round(u * map.metersPerUnit);
-  return { m, mins: Math.max(1, Math.round(m / 75)) };
+  return { pts, to: { x: vx, y: vy }, steps: [], meters: 0, mins: 0, approximate: true };
 }
 function showDirections(ev) {
   if (!ev || ev.campus_x == null) { toast('Venue TBA — directions unlock once verified.'); return; }
   const r = buildRouteTo(ev);
   map.setRoute(r);
-  const s = routeStats(r.pts);
   $('#dirDest').textContent = ev.venue_name || 'Moksha';
-  $('#dirMeta').textContent = `≈${s.m} m · ~${s.mins} min walk · Approximate route`;
+  $('#dirMeta').textContent = `≈${r.meters} m · ~${r.mins} min walk · ${r.approximate ? 'Approximate route' : 'via campus roads'}`;
+  $('#dirSteps').innerHTML = r.steps.map((s, i) => `<li><strong>${i + 1}.</strong> ${s.text}${s.meters ? ` <span>· ${s.meters} m</span>` : ''}</li>`).join('');
   $('#dirBar').hidden = false;
   go('map');
   map.flyTo((map.mePos.x + ev.campus_x) / 2, (map.mePos.y + ev.campus_y) / 2, { dist: 1100 });
-  toast(`📍 You → 🎭 ${ev.venue_name} · ~${s.mins} min walk`);
+  toast(`📍 You → 🎭 ${ev.venue_name} · ~${r.mins} min walk`);
 }
 $('#dirClose').onclick = () => { map.setRoute(null); $('#dirBar').hidden = true; };
 
