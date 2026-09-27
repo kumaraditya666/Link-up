@@ -174,6 +174,20 @@ export const Net = {
   respondLinkup(from, accept, durMin) { return this.api('POST', '/api/linkup/respond', { from, accept, durMin }); },
   endLink() { return this.api('POST', '/api/linkup/end', {}); },
   sendChat(to, text) { return this.api('POST', '/api/chat', { to, text }); },
+  blockUser(id, block = true) { return this.api('POST', '/api/block', { user: id, block }); },
+  async blockedList() {
+    const r = await this.api('GET', '/api/blocks');
+    return (r.data && r.data.blocked) || [];
+  },
+  reportUser(id, reason) { return this.api('POST', '/api/report', { user: id, reason }); },
+  async adminReports() {
+    const l = await this.api('POST', '/api/admin/login', { code: 'moksha27' }).catch(() => ({}));
+    const t = l.data && l.data.adminToken;
+    if (!t) return [];
+    const r = await fetch(this.base + '/api/admin/reports', { headers: { 'x-admin-token': t } });
+    const d = await r.json().catch(() => ([]));
+    return Array.isArray(d) ? d : [];
+  },
   groupCreate(spot, durMin) { return this.api('POST', '/api/group/create', { spot, durMin }); },
   groupInvite(groupId, to) { return this.api('POST', '/api/group/invite', { groupId, to }); },
   groupJoin(groupId) { return this.api('POST', '/api/group/join', { groupId }); },

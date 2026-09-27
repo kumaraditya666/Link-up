@@ -45,7 +45,12 @@ const sessions = new Map();   // userId -> {id,with,spot,endsAt}
 const chats = new Map();      // pairKey -> [{from,text,t}]
 const pushSubs = new Map();   // userId -> push subscription
 const groups = new Map();     // id -> {id,spot,spotX,spotY,endsAt,host,members[],invites[]}
+const blocks = new Map();     // userId -> Set<blockedIds>
+const reports = [];           // [{id,from,about,reason,at}]
 let adminTokens = new Set();
+function isBlocked(a, b) {
+  return blocks.get(a)?.has(b) || blocks.get(b)?.has(a);
+}
 function memberGroups(uid) {
   const out = [];
   for (const g of groups.values()) if (g.members.includes(uid)) out.push(g);
@@ -99,7 +104,7 @@ setInterval(() => {
     else { u.x += (dx / d) * 7; u.y += (dy / d) * 7; }
     u.spot = spotFor(u.x, u.y); u.seenAt = now();
   }
-  broadcast({ type: 'roster', roster: roster() });
+  broadcastRoster();
 }, 3000);
 
 /* ---------- festival events (mirrors client seed shape) ---------- */
@@ -125,13 +130,17 @@ setInterval(() => {
     if (g.endsAt && g.endsAt < now()) { groups.delete(id); groupCast(g, { type: 'group_end', groupId: id, expired: true }); }
   }
   for (const [id, u] of users) {
-    if (!u.bot && now() - u.seenAt > STALE_MS) { users.delete(id); broadcast({ type: 'roster', roster: roster() }); }
+    if (!u.bot && now() - u.seenAt > STALE_MS) { users.delete(id); broadcastRoster(); }
   }
 }, 5000);
 
 /* ---------- helpers ---------- */
 function roster() {
   return [...users.values()].map((u) => ({ id: u.id, name: u.name, dept: u.dept, x: Math.round(u.x), y: Math.round(u.y), spot: u.spot, online: true, bot: !!u.bot }));
+}
+/* per-viewer roster: blocked pairs never see each other (either direction) */
+function rosterFor(uid) {
+  return roster().filter((u) => u.id !== uid && !isBlocked(uid, u.id));
 }
 function sendTo(uid, msg) {
   const set = streams.get(uid);
@@ -143,6 +152,12 @@ function sendTo(uid, msg) {
 function broadcast(msg) {
   const line = `data: ${JSON.stringify(msg)}\n\n`;
   for (const set of streams.values()) for (const res of set) { try { res.write(line); } catch {} }
+}
+function broadcastRoster() {
+  for (const [uid, set] of streams) {
+    const line = `data: ${JSON.stringify({ type: 'roster', roster: rosterFor(uid) })}\n\n`;
+    for (const res of set) { try { res.write(line); } catch {} }
+  }
 }
 function body(req) {
   return new Promise((res, rej) => {
@@ -192,12 +207,12 @@ const server = http.createServer(async (req, res) => {
       const id = rid('u-'), token = crypto.randomBytes(16).toString('hex');
       users.set(id, { id, name: String(name).slice(0, 40), dept: String(dept || '').slice(0, 20), token, x: 350, y: 400, spot: 'Near Admin Block', seenAt: now(), bot: false, wp: null });
       byToken.set(token, id);
-      broadcast({ type: 'roster', roster: roster() });
+      broadcastRoster();
       return send(res, 200, { id, token });
     }
     /* authed routes */
     const me = auth(req, url);
-    const needAuth = ['/api/pos', '/api/linkup', '/api/linkup/respond', '/api/linkup/end', '/api/session', '/api/chat', '/api/push/subscribe', '/api/push/unsubscribe'].some((p) => url.pathname === p || url.pathname.startsWith('/api/chat')) || url.pathname.startsWith('/api/group') || url.pathname === '/api/groups/mine';
+    const needAuth = ['/api/pos', '/api/linkup', '/api/linkup/respond', '/api/linkup/end', '/api/session', '/api/chat', '/api/push/subscribe', '/api/push/unsubscribe', '/api/block', '/api/blocks', '/api/report'].some((p) => url.pathname === p || url.pathname.startsWith('/api/chat')) || url.pathname.startsWith('/api/group') || url.pathname === '/api/groups/mine';
     if (needAuth && !me) return send(res, 401, { error: 'unauthorized' });
 
     if (req.method === 'POST' && url.pathname === '/api/pos') {
@@ -210,7 +225,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && url.pathname === '/api/live') {
       if (!me) return send(res, 401, { error: 'unauthorized' });
       res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive', 'Access-Control-Allow-Origin': '*' });
-      res.write(`data: ${JSON.stringify({ type: 'hello', you: me.id, roster: roster() })}\n\n`);
+      res.write(`data: ${JSON.stringify({ type: 'hello', you: me.id, roster: rosterFor(me.id) })}\n\n`);
       res.on('error', () => {}); // dead sockets must never take the server down
       if (!streams.has(me.id)) streams.set(me.id, new Set());
       streams.get(me.id).add(res);
@@ -229,7 +244,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'POST' && url.pathname === '/api/linkup') {
       const { to, spot, durMin } = await body(req);
       const peer = users.get(to);
-      if (!peer) return send(res, 404, { error: 'user offline' });
+      if (!peer || isBlocked(me.id, to)) return send(res, 404, { error: 'user offline' });
       if (sessions.get(me.id) || memberGroups(me.id).length) return send(res, 409, { error: 'already linked' });
       if (sessions.get(to) || memberGroups(to).length) return send(res, 409, { error: 'busy' });
       const r = { id: rid('req-'), from: me.id, to, spot: String(spot || 'Near SAC').slice(0, 60), durMin: [30, 60, 120, 0].includes(+durMin) ? +durMin : 30, expires: now() + 120e3 };
@@ -254,7 +269,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'POST' && url.pathname === '/api/linkup/respond') {
       const { from, accept, durMin } = await body(req);
       const r = [...requests.values()].find((x) => x.from === from && x.to === me.id);
-      if (!r) return send(res, 404, { error: 'request expired' });
+      if (!r || isBlocked(me.id, from)) return send(res, 404, { error: 'request expired' });
       requests.delete(r.id);
       if (!accept) { sendTo(from, { type: 'linkup_decline', from: me.id }); return send(res, 200, { ok: true }); }
       const d = [30, 60, 120, 0].includes(+durMin) ? +durMin : r.durMin;
@@ -270,7 +285,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'POST' && url.pathname === '/api/chat') {
       const { to, text } = await body(req);
       const t = String(text || '').slice(0, 500);
-      if (!t || !users.get(to)) return send(res, 400, { error: 'bad message' });
+      if (!t || !users.get(to) || isBlocked(me.id, to)) return send(res, 400, { error: 'bad message' });
       const k = pairKey(me.id, to);
       if (!chats.has(k)) chats.set(k, []);
       const m = { from: me.id, text: t, t: new Date().toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' }) };
@@ -293,6 +308,27 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, { ok: true });
     }
     if (req.method === 'POST' && url.pathname === '/api/push/unsubscribe') { pushSubs.delete(me.id); return send(res, 200, { ok: true }); }
+    /* ---- safety: block / report ---- */
+    if (req.method === 'POST' && url.pathname === '/api/block') {
+      const { user, block } = await body(req);
+      if (!users.get(user) || user === me.id) return send(res, 400, { error: 'bad user' });
+      if (!blocks.has(me.id)) blocks.set(me.id, new Set());
+      if (block === false) blocks.get(me.id).delete(user);
+      else blocks.get(me.id).add(user);
+      broadcastRoster();
+      return send(res, 200, { ok: true, blocked: blocks.get(me.id).has(user) });
+    }
+    if (req.method === 'GET' && url.pathname === '/api/blocks') {
+      const ids = [...(blocks.get(me.id) || [])];
+      return send(res, 200, { blocked: ids.map((id) => { const u = users.get(id); return u ? { id: u.id, name: u.name } : { id }; }) });
+    }
+    if (req.method === 'POST' && url.pathname === '/api/report') {
+      const { user, reason } = await body(req);
+      if (!users.get(user)) return send(res, 400, { error: 'bad user' });
+      reports.unshift({ id: rid('rep-'), from: me.id, fromName: me.name, about: user, aboutName: users.get(user).name, reason: String(reason || '').slice(0, 200), at: now() });
+      if (reports.length > 100) reports.pop();
+      return send(res, 200, { ok: true });
+    }
     /* ---- group hangouts ---- */
     if (req.method === 'POST' && url.pathname === '/api/group/create') {
       const { spot, durMin } = await body(req);
@@ -308,7 +344,7 @@ const server = http.createServer(async (req, res) => {
       const g = groups.get(groupId);
       const peer = users.get(to);
       if (!g || !g.members.includes(me.id)) return send(res, 404, { error: 'no group' });
-      if (!peer) return send(res, 404, { error: 'user offline' });
+      if (!peer || isBlocked(me.id, to)) return send(res, 404, { error: 'user offline' });
       if (g.members.includes(to) || g.invites.includes(to)) return send(res, 200, { ok: true, dup: true });
       g.invites.push(to);
       if (peer.bot) {
@@ -379,6 +415,7 @@ const server = http.createServer(async (req, res) => {
     const adm = req.headers['x-admin-token'];
     if (url.pathname.startsWith('/api/admin/') && !adminTokens.has(adm)) return send(res, 403, { error: 'organizers only' });
     if (req.method === 'GET' && url.pathname === '/api/admin/events') return send(res, 200, events);
+    if (req.method === 'GET' && url.pathname === '/api/admin/reports') return send(res, 200, reports);
     if (req.method === 'POST' && url.pathname === '/api/admin/events') {
       const ev = await body(req);
       if (!ev.name || !ev.start_time || !ev.end_time) return send(res, 400, { error: 'name/dates required' });

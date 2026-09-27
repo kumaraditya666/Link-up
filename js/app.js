@@ -407,7 +407,8 @@ function renderFriends() {
       <p class="muted" style="margin:8px 0">${f.vibe}</p>
       <div class="row" style="gap:8px"><span class="pill live">● live</span><span style="flex:1"></span>
       <button class="mini-btn" data-chat="${f.id}">Chat</button>
-      <button class="mini-btn go" data-lu="${f.id}" ${S.ghost ? 'disabled title="Ghosted"' : ''}>Link Up ⚡</button></div></div>`).join('') : '';
+      <button class="mini-btn go" data-lu="${f.id}" ${S.ghost ? 'disabled title="Ghosted"' : ''}>Link Up ⚡</button>
+      <button class="mini-btn" data-block="${f.id}" title="Block ${f.name}">⛔</button></div></div>`).join('') : '';
   grid.innerHTML = liveHtml + list.map((f) => {
     const linked = S.session?.withId === f.id;
     const out = S.outgoing?.toId === f.id;
@@ -426,6 +427,13 @@ function renderFriends() {
   $$('[data-lu]', grid).forEach((b) => (b.onclick = () => openLinkUp(b.dataset.lu)));
   $$('[data-chat]', grid).forEach((b) => (b.onclick = () => { openChat(b.dataset.chat); go('messages'); }));
   $$('[data-end]', grid).forEach((b) => (b.onclick = () => endSession('You ended the hangout.')));
+  $$('[data-block]', grid).forEach((b) => (b.onclick = async () => {
+    const p = getPerson(b.dataset.block);
+    if (!p || !confirm(`Block ${p.name}? You’ll stop seeing each other.`)) return;
+    await Net.blockUser(p.id, true);
+    toast(`Blocked ${p.name.split(' ')[0]}.`);
+    if (S.view === 'friends') renderFriends();
+  }));
   const inc = [...S.incomingQueue.map((q) => ({ ...q, pending: true })), ...S.incoming];
   const ginv = S.groupInvites.map((g) => `<div class="incoming-card"><span class="avatar" style="background:linear-gradient(135deg,#7c3aed,#f59e0b)">👥</span>
       <div class="grow"><strong>Group link up at ${g.spot}.</strong><small>${g.members.map((m) => m.name.split(' ')[0]).join(', ')}</small></div>
@@ -950,6 +958,18 @@ $('#adminLogout').onclick = () => { organizerLogout(); $('#adminGate').hidden = 
 function renderAdmin() {
   $('#adCat').innerHTML = CATEGORIES.map((c) => `<option>${c.id}</option>`).join('');
   $('#adVenue').innerHTML = `<option value="">Venue TBA (unverified)</option>` + VENUES.map((v) => `<option value="${v.id}">📍 ${v.name}</option>`).join('');
+  $('#adminReports').innerHTML = '';
+  if (Net.live) {
+    Net.adminReports().then((reps) => {
+      if (!reps.length) return;
+      const ago = (t) => { const h = Math.floor((Date.now() - t) / 36e5); return h < 1 ? 'just now' : h + 'h ago'; };
+      $('#adminReports').innerHTML = `<h3 style="margin:10px 0 6px">🛡️ Reports (${reps.length})</h3>` + reps.slice(0, 10).map((r) => `
+        <div class="mk-ev"><h4>${r.aboutName} <small class="muted">reported by ${r.fromName}</small></h4>
+        <p>${r.reason || '(no reason)'}</p><small class="muted">${ago(r.at)}</small>
+        <div class="row"><button class="mini-btn" data-breblock="${r.about}">Block user</button></div></div>`).join('');
+      $$('#adminReports [data-breblock]').forEach((b) => (b.onclick = async () => { await Net.blockUser(b.dataset.breblock, true); toast('User blocked campus-wide from your view.'); }));
+    }).catch(() => {});
+  }
   const list = EventStore.all().sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
   $('#adminList').innerHTML = list.map((ev) => {
     const st = statusLabel(ev);
@@ -1073,7 +1093,10 @@ function sendChat(text) {
   }
   pushMsg(fid, 'me', text);
   $('#chatInput').value = '';
-  if (getPerson(fid)?.live && Net.live) { Net.sendChat(fid, text); return; } // server delivers
+  if (getPerson(fid)?.live && Net.live) {
+    Net.sendChat(fid, text).then((r) => { if (r.code === 400) toast('Not delivered — you may be blocked.'); });
+    return;
+  } // server delivers
   const replies = ['Bet 😎', 'On my way!!', 'Haha fr', 'SAC in 10? ⚡', 'Okay okay, link up? 🤝'];
   setTimeout(() => { if (S.activeChat) pushMsg(fid, 'them', replies[Math.floor(Math.random() * replies.length)]); }, 1600);
 }
@@ -1116,6 +1139,23 @@ function openProfile() {
   $('#profileNote').textContent = Net.live ? 'Name change rejoins the live server (page reloads).' : '';
   const earned = Social.earnedBadges(TRAILS, S.visited, Social.linkupCount());
   $('#badgeShelf').innerHTML = Social.BADGES.map((b) => `<span class="tag" style="${earned.includes(b.id) ? 'color:var(--lime);border-color:#a3e63555' : 'opacity:.45'}" title="${b.desc}">${earned.includes(b.id) ? b.name : '🔒 ' + b.name.split(' ')[0]}</span>`).join('');
+  $('#blockedWrap').hidden = true;
+  if (Net.live) {
+    Net.blockedList().then((list) => {
+      if (!list.length) return;
+      $('#blockedWrap').hidden = false;
+      $('#blockedList').innerHTML = list.map((u) => `<div class="row" style="gap:8px;font-size:13px"><span style="flex:1">${u.name}</span>
+        <button class="mini-btn" data-unb="${u.id}">Unblock</button>
+        <button class="mini-btn" data-rep="${u.id}" data-nm="${u.name}">Report</button></div>`).join('');
+      $$('#blockedList [data-unb]').forEach((b) => (b.onclick = async () => { await Net.blockUser(b.dataset.unb, false); toast('Unblocked.'); openProfile(); }));
+      $$('#blockedList [data-rep]').forEach((b) => (b.onclick = async () => {
+        const reason = prompt(`Report ${b.dataset.nm}? Why?`, 'Spam / misuse');
+        if (!reason) return;
+        await Net.reportUser(b.dataset.rep, reason);
+        toast('Reported — organizers will review. 🛡️');
+      }));
+    }).catch(() => {});
+  }
   applyProfileToUI();
   applyProfileToUI();
   $('#profileModal').hidden = false;
