@@ -50,7 +50,7 @@ export const Net = {
   async join(identity) {
     const saved = store.get('cred');
     if (saved?.token) {
-      this.me = { id: saved.id, token: saved.token, name: identity.name };
+      this.me = { id: saved.id, token: saved.token, name: identity.name, dept: identity.dept || '' };
       return;
     }
     const r = await fetch(this.base + '/api/join', {
@@ -59,29 +59,48 @@ export const Net = {
     });
     if (!r.ok) throw new Error('join failed');
     const { id, token } = await r.json();
-    this.me = { id, token, name: identity.name };
+    this.me = { id, token, name: identity.name, dept: identity.dept || '' };
     store.set('cred', { id, token });
   },
+  async rejoin() {
+    // server restarted / cred wiped -> drop the dead identity and join fresh
+    try { localStorage.removeItem('linkup.live.cred'); } catch {}
+    try { this.es && this.es.close(); } catch {}
+    await this.join({ name: this.me?.name || 'Aditya', dept: this.me?.dept || '' });
+    this.connect();
+    this.mode = 'live';
+    this.emit('mode', 'live');
+  },
   auth() { return { Authorization: 'Bearer ' + this.me.token }; },
-  async api(method, path, body) {
+  async api(method, path, body, retried = false) {
     const r = await fetch(this.base + path, {
       method, headers: { 'Content-Type': 'application/json', ...this.auth() },
       body: body ? JSON.stringify(body) : undefined,
     });
+    if (r.status === 401 && !retried && this.me) {
+      await this.rejoin(); // stale token (e.g. server restarted) -> heal + retry once
+      return this.api(method, path, body, true);
+    }
     const data = await r.json().catch(() => ({}));
     return { code: r.status, data };
   },
   connect() {
-    if (this.es) this.es.close();
+    if (this.es) { try { this.es.close(); } catch {} }
+    let errStreak = 0;
     this.es = new EventSource(`${this.base}/api/live?token=${this.me.token}`);
+    this.es.onopen = () => { errStreak = 0; };
     this.es.onmessage = (e) => {
+      errStreak = 0;
       try {
         const m = JSON.parse(e.data);
         if (m.type === 'roster' && m.roster) { this.roster = m.roster.filter((u) => u.id !== this.me.id); this.emit('roster', this.roster); }
         else this.emit(m.type, m);
       } catch {}
     };
-    this.es.onerror = () => this.emit('mode', 'live'); // EventSource retries by itself
+    this.es.onerror = () => {
+      // persistent stream failure (e.g. dead cred) -> rejoin fresh
+      if (++errStreak > 3 && this.me) { errStreak = 0; this.rejoin().catch(() => {}); }
+    };
     clearInterval(this.hb);
     this.hb = setInterval(() => this.beat(), 5000);
     this.beat();
@@ -107,8 +126,7 @@ export const Net = {
   endLink() { return this.api('POST', '/api/linkup/end', {}); },
   sendChat(to, text) { return this.api('POST', '/api/chat', { to, text }); },
   async history(withId) {
-    const r = await fetch(`${this.base}/api/chat?token=${this.me.token}&with=${encodeURIComponent(withId)}`, { headers: this.auth() });
-    const d = await r.json().catch(() => ({}));
-    return (d.messages || []).map((m) => ({ from: m.from === this.me.id ? 'me' : 'them', text: m.text, t: m.t }));
+    const { data } = await this.api('GET', `/api/chat?with=${encodeURIComponent(withId)}`);
+    return ((data && data.messages) || []).map((m) => ({ from: m.from === this.me.id ? 'me' : 'them', text: m.text, t: m.t }));
   },
 };

@@ -953,6 +953,9 @@ function boot() {
   Net.init({ name: myName(), dept: S.profile.dept }).then((live) => {
     if (live) { toast('⚡ Connected to live server — real people, real requests.'); refreshLivePins(); }
   });
+  setInterval(() => {
+    if (!Net.live && !document.hidden) Net.init({ name: myName(), dept: S.profile.dept }); // silent auto-retry
+  }, 25000);
   $('#netPill').onclick = () => {
     updateNetPill();
     if (!Net.live) { toast('Looking for live server…'); Net.init({ name: myName(), dept: S.profile.dept }); }
