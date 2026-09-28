@@ -1,0 +1,146 @@
+[
+  {
+    "model": "admin",
+    "id": "admin",
+    "x": 345,
+    "y": 355,
+    "ry": "0",
+    "skip": false
+  },
+  {
+    "model": "library",
+    "id": "sac-lib",
+    "x": 550,
+    "y": 395,
+    "ry": "0",
+    "skip": false
+  },
+  {
+    "model": "apj",
+    "id": "apj",
+    "x": 425,
+    "y": 225,
+    "ry": "0",
+    "skip": false
+  },
+  {
+    "model": "canteen",
+    "id": "canteen",
+    "x": 460,
+    "y": 180,
+    "ry": "0",
+    "skip": false
+  },
+  {
+    "model": "hostel",
+    "id": "boys-a",
+    "x": 200,
+    "y": 160,
+    "ry": "0",
+    "skip": false
+  },
+  {
+    "model": "hostel",
+    "id": "boys-b",
+    "x": 300,
+    "y": 190,
+    "ry": "0",
+    "skip": false
+  },
+  {
+    "model": "hostel",
+    "id": "girls",
+    "x": 470,
+    "y": 540,
+    "ry": "0",
+    "skip": false
+  },
+  {
+    "model": "gate",
+    "id": "north-gate",
+    "x": 32,
+    "y": 133,
+    "ry": "Math.PI / 2",
+    "skip": false
+  },
+  {
+    "model": "gate",
+    "id": "main-gate",
+    "x": 32,
+    "y": 450,
+    "ry": "Math.PI / 2",
+    "skip": false
+  },
+  {
+    "model": "kiosk",
+    "id": "safal",
+    "x": 380,
+    "y": 205,
+    "ry": "0",
+    "skip": false
+  },
+  {
+    "model": "kiosk",
+    "id": "stationary",
+    "x": 510,
+    "y": 215,
+    "ry": "0",
+    "skip": false
+  },
+  {
+    "model": "academic",
+    "id": "academic-a",
+    "x": 430,
+    "y": 400,
+    "ry": "0",
+    "skip": false
+  },
+  {
+    "model": "academic",
+    "id": "academic-b",
+    "x": 490,
+    "y": 360,
+    "ry": "0",
+    "skip": false
+  },
+  {
+    "model": "gym",
+    "id": "gym",
+    "x": 632,
+    "y": 405,
+    "ry": "0",
+    "skip": false
+  },
+  {
+    "model": "guest",
+    "id": "guest",
+    "x": 400,
+    "y": 490,
+    "ry": "0",
+    "skip": false
+  },
+  {
+    "model": "design",
+    "id": "design",
+    "x": 130,
+    "y": 100,
+    "ry": "0",
+    "skip": false
+  },
+  {
+    "model": "smart",
+    "id": "smart",
+    "x": 550,
+    "y": 238,
+    "ry": "0",
+    "skip": false
+  },
+  {
+    "model": "flag",
+    "id": "flag",
+    "x": 300,
+    "y": 358,
+    "ry": "0",
+    "skip": false
+  }
+]

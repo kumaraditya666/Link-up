@@ -330,6 +330,26 @@ export function createMap(canvas, opts = {}) {
       city.instanceMatrix.needsUpdate = true;
       if (city.instanceColor) city.instanceColor.needsUpdate = true;
       scene.add(city);
+      // rooftop water tanks on a subset of city blocks
+      {
+        const spots = [];
+        buildings.forEach((s, i) => {
+          if (i % 3 !== 0) return;
+          spots.push({ x: s.x + s.w * 0.22, y: s.y - s.d * 0.18, top: s.h });
+        });
+        const tanks = new THREE.InstancedMesh(
+          new THREE.BoxGeometry(4, 3, 4),
+          new THREE.MeshStandardMaterial({ color: 0x3a3f48, roughness: 0.9 }),
+          Math.max(1, spots.length),
+        );
+        const d = new THREE.Object3D();
+        spots.forEach((s, i) => {
+          d.position.set(GX(s.x), s.top + 1.5, GZ(s.y)); d.rotation.y = 0; d.scale.set(1, 1, 1); d.updateMatrix();
+          tanks.setMatrixAt(i, d.matrix);
+        });
+        tanks.instanceMatrix.needsUpdate = true;
+        scene.add(tanks);
+      }
       // street trees along every city street
       for (const pts of [...ARTERIALS, ...STREETS]) {
         const [[ax, ay], [bx, by]] = pts;
@@ -417,6 +437,77 @@ export function createMap(canvas, opts = {}) {
       }
     }
     drawFields(P);
+    // stadium + moksha floodlight poles (instanced: 2 draws)
+    {
+      const spots = [];
+      for (const [fx, fy, fw, fd] of [[780, 470, 150, 100], [475, 288, 260, 56]]) {
+        for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+          spots.push({ x: fx + sx * (fw / 2 + 14), y: fy + sz * (fd / 2 + 14) });
+        }
+      }
+      const poleG = new THREE.CylinderGeometry(0.5, 0.7, 26, 8);
+      const poleM = new THREE.MeshStandardMaterial({ color: 0x4a4f5b, roughness: 0.7, metalness: 0.4 });
+      const poles = new THREE.InstancedMesh(poleG, poleM, spots.length);
+      const headG = new THREE.BoxGeometry(6, 2.4, 1.6);
+      const headM = new THREE.MeshStandardMaterial({ color: 0x2b2f3a, roughness: 0.7 });
+      const heads = new THREE.InstancedMesh(headG, headM, spots.length);
+      const d = new THREE.Object3D();
+      spots.forEach((s, i) => {
+        d.position.set(GX(s.x), 13, GZ(s.y)); d.rotation.y = 0; d.scale.set(1, 1, 1); d.updateMatrix();
+        poles.setMatrixAt(i, d.matrix);
+        d.position.set(GX(s.x), 26.5, GZ(s.y)); d.updateMatrix();
+        heads.setMatrixAt(i, d.matrix);
+      });
+      poles.castShadow = true;
+      poles.instanceMatrix.needsUpdate = heads.instanceMatrix.needsUpdate = true;
+      scene.add(poles, heads);
+    }
+    // low fence ring around Moksha Ground
+    {
+      const F = { x: 475, y: 288, w: 270, d: 56 };
+      const postG = new THREE.CylinderGeometry(0.28, 0.28, 2.6, 6);
+      const postM = new THREE.MeshStandardMaterial({ color: 0x6b5a3a, roughness: 1 });
+      const per = [];
+      for (let x = F.x - F.w / 2; x <= F.x + F.w / 2; x += 18) { per.push([x, F.y - F.d / 2 - 4]); per.push([x, F.y + F.d / 2 + 4]); }
+      for (let y = F.y - F.d / 2; y <= F.y + F.d / 2; y += 18) { per.push([F.x - F.w / 2 - 4, y]); per.push([F.x + F.w / 2 + 4, y]); }
+      const fence = new THREE.InstancedMesh(postG, postM, per.length);
+      const d = new THREE.Object3D();
+      per.forEach(([x, y], i) => { d.position.set(GX(x), 1.3, GZ(y)); d.rotation.y = 0; d.scale.set(1, 1, 1); d.updateMatrix(); fence.setMatrixAt(i, d.matrix); });
+      fence.instanceMatrix.needsUpdate = true;
+      scene.add(fence);
+    }
+    // zebra crossings on key walking routes
+    {
+      const zebraM = new THREE.MeshBasicMaterial({ color: 0xf5f0dc, transparent: true, opacity: 0.9 });
+      const zebra = (cx, cy, ang, roadW) => {
+        for (let i = -2; i <= 2; i++) {
+          const m = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 5), zebraM);
+          m.rotation.x = -Math.PI / 2; m.rotation.z = ang;
+          m.position.set(GX(cx + Math.cos(ang) * i * 3), 0.5, GZ(cy - Math.sin(ang) * i * 3));
+          scene.add(m);
+        }
+        void roadW;
+      };
+      zebra(300, 360, 0, 8); zebra(550, 388, 0, 10); zebra(660, 380, 0.5, 10); zebra(270, 420, 0.2, 10); zebra(475, 322, 0, 8);
+    }
+    // darker intersection pads grounding the road network
+    {
+      const padM = new THREE.MeshStandardMaterial({ color: 0x565b66, roughness: 1 });
+      for (const [px, py] of [[330, 322], [660, 322], [660, 265], [345, 380], [270, 400], [60, 378], [300, 358]]) {
+        const pad = new THREE.Mesh(new THREE.CircleGeometry(10, 24), padM);
+        pad.rotation.x = -Math.PI / 2; pad.position.set(GX(px), 0.36, GZ(py));
+        pad.receiveShadow = true; scene.add(pad);
+      }
+    }
+    // flower beds: admin forecourt + flag circle
+    {
+      const bedM = new THREE.MeshStandardMaterial({ color: 0xa8443c, roughness: 1 });
+      for (const [px, py] of [[372, 428], [322, 358]]) {
+        const bed = new THREE.Mesh(new THREE.CircleGeometry(7, 20), bedM);
+        bed.rotation.x = -Math.PI / 2; bed.position.set(GX(px), 0.35, GZ(py));
+        bed.receiveShadow = true; scene.add(bed);
+      }
+    }
   }
 
   function drawFields(P) {
@@ -627,6 +718,55 @@ export function createMap(canvas, opts = {}) {
       g.position.set(GX(cx), 0, GZ(cy)); g.rotation.y = -a;
       scene.add(g);
     });
+  }
+
+  /* ---------- landscaping: bushes + city rooftop tanks (instanced) ---------- */
+  {
+    const rng = mulberry(5150);
+    const bushes = [];
+    const tryBush = (x, y) => {
+      if (!inPoly(x, y)) return;
+      if (FOOT.some(([fx, fy, hw, hd]) => Math.abs(x - fx) < hw + 4 && Math.abs(y - fy) < hd + 4)) return;
+      if (FIELDS.some((F) => Math.abs(x - F.x) < F.w / 2 + 4 && Math.abs(y - F.y) < F.d / 2 + 4)) return;
+      if (PLAZAS.some((p) => Math.abs(x - p.x) < p.w / 2 + 2 && Math.abs(y - p.y) < p.d / 2 + 2)) return;
+      for (const r of ROADS) {
+        for (let i = 0; i < r.pts.length - 1; i++) {
+          const [ax, ay] = r.pts[i], [bx, by] = r.pts[i + 1];
+          const dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy || 1;
+          const t = clamp(((x - ax) * dx + (y - ay) * dy) / L2, 0, 1);
+          if (Math.hypot(x - (ax + t * dx), y - (ay + t * dy)) < r.w / 2 + 3) return;
+        }
+      }
+      bushes.push({ x, y, r: 1.8 + rng() * 2.2 });
+    };
+    // rings around buildings + plaza edges + hedge line
+    for (const [fx, fy, hw, hd] of FOOT) {
+      for (let k = 0; k < 10; k++) {
+        const side = Math.floor(rng() * 4);
+        const bx = side === 0 ? fx - hw - 6 - rng() * 4 : side === 1 ? fx + hw + 6 + rng() * 4 : fx + (rng() - 0.5) * hw * 2;
+        const by = side < 2 ? fy + (rng() - 0.5) * hd * 2 : side === 2 ? fy - hd - 6 - rng() * 4 : fy + hd + 6 + rng() * 4;
+        tryBush(bx, by);
+      }
+    }
+    for (const pz of PLAZAS) for (let k = 0; k < 8; k++) tryBush(pz.x - pz.w / 2 - 4 + rng() * 8, pz.y - pz.d / 2 + rng() * pz.d);
+    const bushMesh = new THREE.InstancedMesh(
+      new THREE.IcosahedronGeometry(1, 1),
+      new THREE.MeshStandardMaterial({ roughness: 1 }),
+      Math.max(1, bushes.length),
+    );
+    {
+      const d = new THREE.Object3D(), col = new THREE.Color();
+      bushes.forEach((b, i) => {
+        d.position.set(GX(b.x), b.r * 0.45, GZ(b.y)); d.rotation.y = rng() * TAU;
+        d.scale.set(b.r * 1.25, b.r * 0.62, b.r * 1.25); d.updateMatrix();
+        bushMesh.setMatrixAt(i, d.matrix);
+        bushMesh.setColorAt(i, col.set(i % 3 === 0 ? 0x2e5c2a : i % 3 === 1 ? 0x3a7040 : 0x274d24));
+      });
+    }
+    bushMesh.instanceMatrix.needsUpdate = true;
+    if (bushMesh.instanceColor) bushMesh.instanceColor.needsUpdate = true;
+    bushMesh.castShadow = true;
+    scene.add(bushMesh);
   }
 
   /* ---------- me + friends ---------- */
