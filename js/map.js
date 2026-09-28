@@ -189,6 +189,7 @@ export function createMap(canvas, opts = {}) {
     t.wrapS = t.wrapT = THREE.RepeatWrapping;
     t.colorSpace = THREE.SRGBColorSpace;
     t.repeat.set(repeat, repeat);
+    t.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
     return t;
   }
   function segDist2(px, py, ax, ay, bx, by) {
