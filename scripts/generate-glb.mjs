@@ -295,18 +295,18 @@ function composeBuilding(spec, detail, seed) {
 
 /* ---------- landmark specs (local coords, y-up; match campus grid) ---------- */
 const SPECS = {
-  admin: { wall: '#9c4a34', roof: '#6e3a2a', trim: '#d8c9a8', entrance: 'W', floors: 3, mural: true, bands: true, pilasters: true, cores: [[52, 0, 12, 30, 19]], blocks: [{ ox: 0, oz: 0, w: 54, d: 112, h: 15 }, { ox: 30, oz: -30, w: 26, d: 36, h: 11 }, { ox: 30, oz: 30, w: 26, d: 36, h: 11 }] },
-  library: { wall: '#c8bfae', roof: '#6f7d8c', trim: '#0e7490', entrance: 'S', floors: 3, stepsWide: 34, bands: true, pilasters: true, portico: true, cores: [[60, 0, 12, 28, 17]], blocks: [{ ox: 0, oz: 0, w: 112, d: 50, h: 13, glass: 'S', gable: true }, { ox: -70, oz: -4, w: 40, d: 36, h: 9 }] },
-  apj: { wall: '#b7bdc9', roof: '#5d6673', trim: '#8a93a3', entrance: 'W', floors: 3, bands: true, pilasters: true, cores: [[-78, 0, 12, 28, 18]], blocks: [{ ox: -10, oz: 0, w: 120, d: 42, h: 14, gable: true }, { ox: 55, oz: 34, w: 34, d: 62, h: 14 }] },
-  academic: { wall: '#b7bdc9', roof: '#5d6673', trim: '#31437c', entrance: 'S', floors: 3, bands: true, pilasters: true, portico: true, cores: [[58, 10, 10, 24, 16]], blocks: [{ ox: 0, oz: -4, w: 64, d: 40, h: 13, gable: true }, { ox: -40, oz: 12, w: 22, d: 44, h: 10 }, { ox: 40, oz: 12, w: 22, d: 44, h: 10 }] },
-  gym: { wall: '#bcc8b4', roof: '#3f5a44', trim: '#166534', entrance: 'W', floors: 1, doorWide: 12, skylights: true, blocks: [{ ox: 0, oz: 0, w: 40, d: 34, h: 5 }] },
-  girls: { wall: '#c2b8a4', roof: '#6e6252', trim: '#334155', entrance: 'S', floors: 4, bands: true, balconies: 'S', cores: [[-54, 6, 10, 22, 18]], blocks: [{ ox: 0, oz: 0, w: 96, d: 36, h: 14 }] },
-  guest: { wall: '#c9c2b2', roof: '#6e6252', trim: '#6e6252', entrance: 'S', floors: 2, bands: true, blocks: [{ ox: 0, oz: 0, w: 44, d: 28, h: 7, gable: true }] },
-  design: { wall: '#b9c6d4', roof: '#3d4c5e', trim: '#7d8aa0', entrance: 'S', floors: 3, bands: true, blocks: [{ ox: 0, oz: 0, w: 70, d: 40, h: 12, glass: 'S' }] },
-  smart: { wall: '#cfc4d8', roof: '#4c3a6e', trim: '#8a93a3', entrance: 'S', floors: 2, bands: true, blocks: [{ ox: 0, oz: 0, w: 52, d: 36, h: 10, glass: 'S' }] },
-  kiosk: { wall: '#d8b48c', roof: '#8a5a24', trim: '#a33d1f', entrance: 'S', floors: 1, menu: true, blocks: [{ ox: 0, oz: 0, w: 16, d: 12, h: 4 }] },
-  canteen: { wall: '#d9c39a', roof: '#8a6a34', trim: '#7c4a12', entrance: 'S', floors: 1, umbrellas: 4, doorWide: 16, hatch: true, blocks: [{ ox: -8, oz: 0, w: 100, d: 44, h: 7, gable: true }, { ox: 58, oz: -6, w: 34, d: 26, h: 5 }] },
-  hostel: { wall: '#c2b8a4', roof: '#6e6252', trim: '#334155', entrance: 'S', floors: 5, bands: true, balconies: 'S', cores: [[-58, 8, 10, 24, 21], [58, 8, 10, 24, 21]], blocks: [{ ox: 0, oz: 0, w: 100, d: 36, h: 17, gable: true }, { ox: -40, oz: 24, w: 24, d: 30, h: 13 }, { ox: 40, oz: 24, w: 24, d: 30, h: 13 }] },
+  admin: { wall: '#b06040', roof: '#7d4430', trim: '#d8c9a8', entrance: 'W', floors: 3, mural: true, bands: true, pilasters: true, cores: [[52, 0, 12, 30, 19]], blocks: [{ ox: 0, oz: 0, w: 54, d: 112, h: 15 }, { ox: 30, oz: -30, w: 26, d: 36, h: 11 }, { ox: 30, oz: 30, w: 26, d: 36, h: 11 }] },
+  library: { wall: '#d6cdbd', roof: '#7d8a99', trim: '#0e7490', entrance: 'S', floors: 3, stepsWide: 34, bands: true, pilasters: true, portico: true, cores: [[60, 0, 12, 28, 17]], blocks: [{ ox: 0, oz: 0, w: 112, d: 50, h: 13, glass: 'S', gable: true }, { ox: -70, oz: -4, w: 40, d: 36, h: 9 }] },
+  apj: { wall: '#c6ced8', roof: '#6d7683', trim: '#8a93a3', entrance: 'W', floors: 3, bands: true, pilasters: true, cores: [[-78, 0, 12, 28, 18]], blocks: [{ ox: -10, oz: 0, w: 120, d: 42, h: 14, gable: true }, { ox: 55, oz: 34, w: 34, d: 62, h: 14 }] },
+  academic: { wall: '#c6ced8', roof: '#6d7683', trim: '#31437c', entrance: 'S', floors: 3, bands: true, pilasters: true, portico: true, cores: [[58, 10, 10, 24, 16]], blocks: [{ ox: 0, oz: -4, w: 64, d: 40, h: 13, gable: true }, { ox: -40, oz: 12, w: 22, d: 44, h: 10 }, { ox: 40, oz: 12, w: 22, d: 44, h: 10 }] },
+  gym: { wall: '#c6d2be', roof: '#4a6a50', trim: '#166534', entrance: 'W', floors: 1, doorWide: 12, skylights: true, blocks: [{ ox: 0, oz: 0, w: 40, d: 34, h: 5 }] },
+  girls: { wall: '#d0c6b2', roof: '#7d7060', trim: '#334155', entrance: 'S', floors: 4, bands: true, balconies: 'S', cores: [[-54, 6, 10, 22, 18]], blocks: [{ ox: 0, oz: 0, w: 96, d: 36, h: 14 }] },
+  guest: { wall: '#d4ccbc', roof: '#7d7060', trim: '#7d7060', entrance: 'S', floors: 2, bands: true, blocks: [{ ox: 0, oz: 0, w: 44, d: 28, h: 7, gable: true }] },
+  design: { wall: '#c6d2de', roof: '#4a5a6e', trim: '#7d8aa0', entrance: 'S', floors: 3, bands: true, blocks: [{ ox: 0, oz: 0, w: 70, d: 40, h: 12, glass: 'S' }] },
+  smart: { wall: '#d9cfe2', roof: '#5a4a7d', trim: '#8a93a3', entrance: 'S', floors: 2, bands: true, blocks: [{ ox: 0, oz: 0, w: 52, d: 36, h: 10, glass: 'S' }] },
+  kiosk: { wall: '#e2bf98', roof: '#97753c', trim: '#a33d1f', entrance: 'S', floors: 1, menu: true, blocks: [{ ox: 0, oz: 0, w: 16, d: 12, h: 4 }] },
+  canteen: { wall: '#e3cfa5', roof: '#97753c', trim: '#7c4a12', entrance: 'S', floors: 1, umbrellas: 4, doorWide: 16, hatch: true, blocks: [{ ox: -8, oz: 0, w: 100, d: 44, h: 7, gable: true }, { ox: 58, oz: -6, w: 34, d: 26, h: 5 }] },
+  hostel: { wall: '#d0c6b2', roof: '#7d7060', trim: '#334155', entrance: 'S', floors: 5, bands: true, balconies: 'S', cores: [[-58, 8, 10, 24, 21], [58, 8, 10, 24, 21]], blocks: [{ ox: 0, oz: 0, w: 100, d: 36, h: 17, gable: true }, { ox: -40, oz: 24, w: 24, d: 30, h: 13 }, { ox: 40, oz: 24, w: 24, d: 30, h: 13 }] },
 };
 /* campus grid placement (reference-image layout) */
 const PLACE = {

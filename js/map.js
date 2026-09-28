@@ -36,7 +36,7 @@ function inPoly(x, y) {
 }
 
 const MODES = {
-  day: { sky: 0xcfd6dd, fog: 0xd8d2c4, tintOut: 0xffffff, tintIn: 0xffffff, sun: 0xfff1dc, sunI: 2.5, hemiSky: 0xbfd4e6, hemiGnd: 0x9a8f7a, hemiI: 0.9, glow: 0.08, beams: 0, stars: false },
+  day: { sky: 0xcfd6dd, fog: 0xd8d2c4, tintOut: 0xffffff, tintIn: 0xffffff, sun: 0xfff1dc, sunI: 2.6, hemiSky: 0xbfd4e6, hemiGnd: 0x9a8f7a, hemiI: 1.0, glow: 0.08, beams: 0, stars: false },
   evening: { sky: 0x38324e, fog: 0x9a7f72, tintOut: 0xd8c2ae, tintIn: 0xcfae90, sun: 0xffb37a, sunI: 1.6, hemiSky: 0x7a6f9a, hemiGnd: 0x4a423a, hemiI: 0.55, glow: 1.1, beams: 0.35, stars: false },
   night: { sky: 0x05070f, fog: 0x0a1226, tintOut: 0x5a6a8a, tintIn: 0x4a5a76, sun: 0xb9ccff, sunI: 0.4, hemiSky: 0x2a3a5e, hemiGnd: 0x101a14, hemiI: 0.35, glow: 1.7, beams: 0.6, stars: true },
 };
@@ -291,7 +291,7 @@ export function createMap(canvas, opts = {}) {
       const bCols = [0xd8d2c2, 0xc9c2b2, 0xe3ded2, 0xb09a80];
       const buildings = [];
       const treeSpots = [];
-      const parkMat = new THREE.MeshStandardMaterial({ color: 0x6f9a52, roughness: 1 });
+      const parkMat = new THREE.MeshStandardMaterial({ color: 0x5f8a48, roughness: 1 });
       for (const [x0, y0, x1, y1, kind] of BLOCKS) {
         if (kind === 'park') {
           const pk = flat(x1 - x0, y1 - y0, 0xffffff, 0.2);
