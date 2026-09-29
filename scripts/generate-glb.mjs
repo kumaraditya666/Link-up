@@ -150,13 +150,25 @@ function parapetAndRoof(ctx, cx, cz, w, d, h, roof) {
   box(opaque, cx - w / 2, h + ph + 0.2, cz, t + 0.5, 0.45, d, C.concrete);
   box(opaque, cx + w / 2, h + ph + 0.2, cz, t + 0.5, 0.45, d, C.concrete);
 }
-function roofUnits(ctx, cx, cz, w, d, h, n, rng, roof) {
+function roofUnits(ctx, cx, cz, w, d, h, n, rng, roof, wall) {
   const { opaque } = ctx;
+  const brick = hex('#8a4a38');
   for (let i = 0; i < n; i++) {
     const ux = cx + (rng() - 0.5) * w * 0.5, uz = cz + (rng() - 0.5) * d * 0.5;
-    box(opaque, ux, h + 1.6, uz, 6 + rng() * 4, 3.2, 5 + rng() * 3, roof);
+    box(opaque, ux, h + 2.2, uz, 5 + rng() * 3, 4.4, 4 + rng() * 2, brick); // brick stair bulkhead
+    box(opaque, ux, h + 4.6, uz, 5.6 + rng() * 3, 0.7, 4.6 + rng() * 2, C.concrete); // bulkhead cap
   }
+  const sx = cx - w * 0.22, sz = cz + d * 0.12;
+  box(opaque, sx, h + 0.5, sz, 14, 0.8, 9, hex('#16233d')); // solar array slab
+  box(opaque, sx, h + 0.15, sz, 15, 0.3, 10, C.dark); // array frame
   prism(opaque, cx + w * 0.28, h + 2.2, cz - d * 0.2, 1.8, 4.4, 10, roof); // water tank
+}
+function deptSign(ctx, cx, cz, face, w = 8) {
+  const { opaque } = ctx;
+  const out = face === 'S' ? 1 : -1;
+  for (const px of [-w / 2, w / 2]) box(opaque, cx + px, 1.6, cz + out * 1.2, 0.4, 3.2, 0.4, C.dark);
+  box(opaque, cx, 3.6, cz + out * 1.2, w, 1.8, 0.4, hex('#1d4f9c')); // blue board
+  box(opaque, cx, 3.6, cz + out * 1.25, w * 0.8, 0.4, 0.45, hex('#e8e2d2')); // stripe
 }
 function umbrella(ctx, cx, cz) {
   const { opaque } = ctx;
@@ -225,7 +237,7 @@ function composeBuilding(spec, detail, seed) {
       if (bl.gable) gable(opaque, bx, h + yBase, bz, w, d, hex('#8a4f38'), wall);
       else {
         parapetAndRoof(ctx, bx, bz, w, d, h + yBase, roof);
-        if (w > 55) roofUnits(ctx, bx, bz, w, d, h + yBase, 2, rng, roof);
+        if (w > 55) roofUnits(ctx, bx, bz, w, d, h + yBase, 2, rng, roof, wall);
       }
       const floors = spec.floors, floorH = h / floors;
       const faces = [
@@ -241,7 +253,8 @@ function composeBuilding(spec, detail, seed) {
         }
       }
       if (spec.bands && floors > 1) {
-        for (let f = 1; f < floors; f++) slabBand(ctx, bx, yBase + 1 + floorH * f, bz, w, d, C.concrete);
+        const bc = spec.bandColor ? hex(spec.bandColor) : C.concrete;
+        for (let f = 1; f < floors; f++) slabBand(ctx, bx, yBase + 1 + floorH * f, bz, w, d, bc);
       }
       if (spec.pilasters) {
         pilasters(ctx, 'S', bz + d / 2, bx, w, yBase + 1, yBase + 1 + h, trim);
@@ -256,6 +269,7 @@ function composeBuilding(spec, detail, seed) {
   }
   if (detail && spec.cores) for (const [cox, coz, cw, cd, ch] of spec.cores) stairCore(ctx, spec.blocks[0].ox + cox, spec.blocks[0].oz + coz, cw, cd, ch, wall, roof);
   if (detail && spec.portico && spec.entrance === 'S') porticoRow(ctx, spec.blocks[0].ox, spec.blocks[0].oz + spec.blocks[0].d / 2 + 2.6, spec.doorWide || 16, 7, trim);
+  if (detail && spec.sign) deptSign(ctx, spec.blocks[0].ox - spec.blocks[0].w * 0.22, spec.blocks[0].oz, 'S');
   if (detail && spec.entrance) entrance(ctx, spec.entrance, spec.blocks[0].oz + (spec.entrance === 'S' ? spec.blocks[0].d / 2 : spec.entrance === 'N' ? -spec.blocks[0].d / 2 : 0), spec.blocks[0].ox, wall, trim, spec.doorWide || 10);
   if (detail && spec.entrance === 'W') entrance(ctx, 'W', spec.blocks[0].ox - spec.blocks[0].w / 2, spec.blocks[0].oz, wall, trim);
   if (detail && spec.entrance === 'N') entrance(ctx, 'N', spec.blocks[0].oz - spec.blocks[0].d / 2, spec.blocks[0].ox, wall, trim);
@@ -296,23 +310,23 @@ function composeBuilding(spec, detail, seed) {
 /* ---------- landmark specs (local coords, y-up; match campus grid) ---------- */
 const SPECS = {
   admin: { wall: '#b06040', roof: '#7d4430', trim: '#d8c9a8', entrance: 'W', floors: 3, mural: true, bands: true, pilasters: true, cores: [[52, 0, 12, 30, 19]], blocks: [{ ox: 0, oz: 0, w: 54, d: 112, h: 15 }, { ox: 30, oz: -30, w: 26, d: 36, h: 11 }, { ox: 30, oz: 30, w: 26, d: 36, h: 11 }] },
-  library: { wall: '#d6cdbd', roof: '#7d8a99', trim: '#0e7490', entrance: 'S', floors: 3, stepsWide: 34, bands: true, pilasters: true, portico: true, cores: [[60, 0, 12, 28, 17]], blocks: [{ ox: 0, oz: 0, w: 112, d: 50, h: 13, glass: 'S', gable: true }, { ox: -70, oz: -4, w: 40, d: 36, h: 9 }] },
-  apj: { wall: '#c6ced8', roof: '#6d7683', trim: '#8a93a3', entrance: 'W', floors: 3, bands: true, pilasters: true, cores: [[-78, 0, 12, 28, 18]], blocks: [{ ox: -10, oz: 0, w: 120, d: 42, h: 14, gable: true }, { ox: 55, oz: 34, w: 34, d: 62, h: 14 }] },
-  academic: { wall: '#c6ced8', roof: '#6d7683', trim: '#31437c', entrance: 'S', floors: 3, bands: true, pilasters: true, portico: true, cores: [[58, 10, 10, 24, 16]], blocks: [{ ox: 0, oz: -4, w: 64, d: 40, h: 13, gable: true }, { ox: -40, oz: 12, w: 22, d: 44, h: 10 }, { ox: 40, oz: 12, w: 22, d: 44, h: 10 }] },
+  library: { wall: '#d6cdbd', roof: '#7d8a99', trim: '#0e7490', entrance: 'S', floors: 3, stepsWide: 34, bands: true, bandColor: '#2e6b46', pilasters: true, portico: true, sign: true, cores: [[60, 0, 12, 28, 17]], blocks: [{ ox: 0, oz: 0, w: 112, d: 50, h: 13, glass: 'S', gable: true }, { ox: -70, oz: -4, w: 40, d: 36, h: 9 }] },
+  apj: { wall: '#c6ced8', roof: '#6d7683', trim: '#8a93a3', entrance: 'W', floors: 3, bands: true, bandColor: '#2e6b46', pilasters: true, sign: true, cores: [[-78, 0, 12, 28, 18]], blocks: [{ ox: -10, oz: 0, w: 120, d: 42, h: 14, gable: true }, { ox: 55, oz: 34, w: 34, d: 62, h: 14 }] },
+  academic: { wall: '#c6ced8', roof: '#6d7683', trim: '#31437c', entrance: 'S', floors: 3, bands: true, bandColor: '#2e6b46', pilasters: true, portico: true, sign: true, cores: [[58, 10, 10, 24, 16]], blocks: [{ ox: 0, oz: -4, w: 64, d: 40, h: 13, gable: true }, { ox: -40, oz: 12, w: 22, d: 44, h: 10 }, { ox: 40, oz: 12, w: 22, d: 44, h: 10 }] },
   gym: { wall: '#c6d2be', roof: '#4a6a50', trim: '#166534', entrance: 'W', floors: 1, doorWide: 12, skylights: true, blocks: [{ ox: 0, oz: 0, w: 40, d: 34, h: 5 }] },
-  girls: { wall: '#d0c6b2', roof: '#7d7060', trim: '#334155', entrance: 'S', floors: 4, bands: true, balconies: 'S', cores: [[-54, 6, 10, 22, 18]], blocks: [{ ox: 0, oz: 0, w: 96, d: 36, h: 14 }] },
+  girls: { wall: '#d0c6b2', roof: '#7d7060', trim: '#334155', entrance: 'S', floors: 4, bands: true, bandColor: '#2e6b46', balconies: 'S', cores: [[-54, 6, 10, 22, 18]], blocks: [{ ox: 0, oz: 0, w: 96, d: 36, h: 14 }] },
   guest: { wall: '#d4ccbc', roof: '#7d7060', trim: '#7d7060', entrance: 'S', floors: 2, bands: true, blocks: [{ ox: 0, oz: 0, w: 44, d: 28, h: 7, gable: true }] },
   design: { wall: '#c6d2de', roof: '#4a5a6e', trim: '#7d8aa0', entrance: 'S', floors: 3, bands: true, blocks: [{ ox: 0, oz: 0, w: 70, d: 40, h: 12, glass: 'S' }] },
   smart: { wall: '#d9cfe2', roof: '#5a4a7d', trim: '#8a93a3', entrance: 'S', floors: 2, bands: true, blocks: [{ ox: 0, oz: 0, w: 52, d: 36, h: 10, glass: 'S' }] },
   kiosk: { wall: '#e2bf98', roof: '#97753c', trim: '#a33d1f', entrance: 'S', floors: 1, menu: true, blocks: [{ ox: 0, oz: 0, w: 16, d: 12, h: 4 }] },
   canteen: { wall: '#e3cfa5', roof: '#97753c', trim: '#7c4a12', entrance: 'S', floors: 1, umbrellas: 4, doorWide: 16, hatch: true, blocks: [{ ox: -8, oz: 0, w: 100, d: 44, h: 7, gable: true }, { ox: 58, oz: -6, w: 34, d: 26, h: 5 }] },
-  hostel: { wall: '#d0c6b2', roof: '#7d7060', trim: '#334155', entrance: 'S', floors: 5, bands: true, balconies: 'S', cores: [[-58, 8, 10, 24, 21], [58, 8, 10, 24, 21]], blocks: [{ ox: 0, oz: 0, w: 100, d: 36, h: 17, gable: true }, { ox: -40, oz: 24, w: 24, d: 30, h: 13 }, { ox: 40, oz: 24, w: 24, d: 30, h: 13 }] },
+  hostel: { wall: '#d0c6b2', roof: '#7d7060', trim: '#334155', entrance: 'S', floors: 5, bands: true, bandColor: '#2e6b46', balconies: 'S', cores: [[-58, 8, 10, 24, 21], [58, 8, 10, 24, 21]], blocks: [{ ox: 0, oz: 0, w: 100, d: 36, h: 17, gable: true }, { ox: -40, oz: 24, w: 24, d: 30, h: 13 }, { ox: 40, oz: 24, w: 24, d: 30, h: 13 }] },
 };
 /* campus grid placement (reference-image layout) */
 const PLACE = {
   admin: [345, 355], library: [550, 395], apj: [425, 225], canteen: [460, 180],
   hostel: [200, 160], gate: [30, 133], amul: [480, 200],
-  academic: [430, 400], nescii: [210, 300], gym: [630, 357], girls: [470, 540],
+  academic: [430, 400], nescii: [210, 300], gym: [632, 405], girls: [470, 540],
   guest: [400, 490], design: [130, 100], smart: [550, 238], kiosk: [380, 205], flag: [270, 365],
 };
 
@@ -371,6 +385,26 @@ function buildFlag(detail) {
     const a = (i / 8) * Math.PI * 2 + 0.4;
     box(opaque, Math.cos(a) * 13, 1.0, Math.sin(a) * 13, 2.2, 2.0, 2.2, hex('#3a5c30')); // hedge ring
     if (i % 2 === 0) box(glow, Math.cos(a) * 13, 2.6, Math.sin(a) * 13, 1.2, 0.8, 1.2, C.amberWin); // lamps
+  }
+  return { opaque, glow };
+}
+function buildFountain(detail) {
+  const opaque = new B(), glow = new B();
+  const rim = hex('#8a4a3a'), basin = hex('#3a6a9c'), stone = hex('#cfc6b4'), peb = hex('#d8d2c2');
+  prism(opaque, 0, 0.3, 0, 16, 0.6, 20, stone);          // plaza disc
+  prism(opaque, 0, 0.45, 0, 12.5, 0.5, 20, peb);         // pebble bed
+  prism(opaque, 0, 1.4, 0, 9, 2.4, 20, rim);             // basin wall
+  prism(opaque, 0, 2.0, 0, 7.4, 0.5, 20, basin);         // mosaic water
+  prism(opaque, 0, 3.0, 0, 1.2, 2.0, 10, C.dark);        // center pedestal
+  prism(opaque, 0, 4.3, 0, 3.2, 0.5, 10, hex('#6b4a3a')); // rusted ring
+  if (detail) {
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2;
+      prism(opaque, Math.cos(a) * 3.2, 4.8, Math.sin(a) * 3.2, 0.18, 1.4, 6, hex('#6b4a3a')); // jets
+    }
+    for (const [bx, bz] of [[-14, 0], [14, 0], [0, -14], [0, 14]]) {
+      box(opaque, bx, 0.9, bz, 5, 1.2, 2, hex('#6e3a2e')); // benches
+    }
   }
   return { opaque, glow };
 }
@@ -510,6 +544,7 @@ for (const [id, spec] of Object.entries(SPECS)) {
 emit('gate', buildGate(true), buildGate(false), PLACE.gate);
 emit('amul', buildAmul(true), buildAmul(false), PLACE.amul);
 emit('flag', buildFlag(true), buildFlag(false), PLACE.flag);
+emit('fountain', buildFountain(true), buildFountain(false), null);
 emit('moksha-stage', buildMokshaStage(), buildMokshaStageLow(), null);
 writeFileSync(new URL('manifest.json', outDir), JSON.stringify(manifest, null, 2));
 console.log(stats.join('\n'));

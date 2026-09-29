@@ -26,8 +26,8 @@
   "gym": {
     "high": "models/gym-high.glb",
     "low": "models/gym-low.glb",
-    "x": 630,
-    "y": 357
+    "x": 632,
+    "y": 405
   },
   "girls": {
     "high": "models/girls-high.glb",

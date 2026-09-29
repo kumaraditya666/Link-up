@@ -75,19 +75,20 @@ const PLACEMENTS = [
   { m: 'design', id: 'design', x: 130, y: 100 },
   { m: 'smart', id: 'smart', x: 550, y: 238 },
   { m: 'flag', id: 'flag', x: 300, y: 358 },
+  { m: 'fountain', id: 'fountain', x: 395, y: 445 },
 ];
 /* tree-avoid rects [cx, cy, hw, hd] */
 const FOOT = [
   [345, 355, 36, 62], [550, 395, 70, 40], [425, 225, 70, 45], [460, 180, 65, 32],
   [200, 160, 60, 40], [300, 190, 60, 40], [470, 540, 60, 40], [130, 100, 55, 35],
   [430, 400, 55, 45], [490, 360, 55, 45],
-  [632, 405, 28, 24], [400, 490, 40, 30], [550, 238, 40, 30], [300, 358, 22, 22],  [380, 205, 16, 14], [510, 215, 16, 14],
+  [632, 405, 28, 24], [400, 490, 40, 30], [550, 238, 40, 30], [300, 358, 22, 22],  [380, 205, 16, 14], [510, 215, 16, 14], [395, 445, 22, 18],
 ];
 const HEIGHTS = {
   admin: 17, 'sac-lib': 15, apj: 16, smart: 12, canteen: 9,
   'boys-a': 19, 'boys-b': 19, girls: 16, design: 14, 'north-gate': 16, 'main-gate': 16,
   safal: 6, stationary: 6, 'academic-a': 15, 'academic-b': 15, nescii2: 3, nescii1: 3, gym: 7,
-  guest: 9, flag: 22, 'moksha-ground': 4, 'amul-ground': 4, sports: 6,
+  guest: 9, flag: 22, fountain: 5, 'moksha-ground': 4, 'amul-ground': 4, sports: 6,
 };
 const ME_POS = { x: 350, y: 400 };
 
@@ -768,6 +769,99 @@ export function createMap(canvas, opts = {}) {
     if (bushMesh.instanceColor) bushMesh.instanceColor.needsUpdate = true;
     bushMesh.castShadow = true;
     scene.add(bushMesh);
+  }
+
+  /* ---------- royal palms (rows along walks + fountain ring) ---------- */
+  {
+    const spots = [];
+    for (let y = 322; y <= 388; y += 22) {
+      if (Math.hypot(289 - 300, y - 358) > 17) spots.push([289, y]);
+      if (Math.hypot(311 - 300, y - 358) > 17) spots.push([311, y]);
+    }
+    for (let t = 0; t <= 1.001; t += 0.2) { // Main Entry avenue
+      const x = 60 + (270 - 60) * t, y = 450 + (420 - 450) * t;
+      spots.push([x - 8, y - 10]); spots.push([x + 8, y + 10]);
+    }
+    for (let i = 0; i < 6; i++) { const a = (i / 6) * TAU; spots.push([395 + Math.cos(a) * 24, 445 + Math.sin(a) * 24]); } // fountain ring
+    spots.push([300, 428]); spots.push([390, 428]); // admin forecourt
+    const trunkG = new THREE.CylinderGeometry(0.45, 0.7, 15, 7);
+    const trunkM = new THREE.MeshStandardMaterial({ color: 0x7a6a55, roughness: 1 });
+    const trunks = new THREE.InstancedMesh(trunkG, trunkM, spots.length);
+    const canG = new THREE.IcosahedronGeometry(1, 0);
+    const canM = new THREE.MeshStandardMaterial({ color: 0x2e6b34, roughness: 1 });
+    const cans = new THREE.InstancedMesh(canG, canM, spots.length);
+    const d = new THREE.Object3D();
+    spots.forEach(([x, y], i) => {
+      d.position.set(GX(x), 7.5, GZ(y)); d.rotation.y = 0; d.scale.set(1, 1, 1); d.updateMatrix();
+      trunks.setMatrixAt(i, d.matrix);
+      d.position.set(GX(x), 16.2, GZ(y)); d.scale.set(7.5, 2.4, 7.5); d.updateMatrix();
+      cans.setMatrixAt(i, d.matrix);
+    });
+    trunks.castShadow = cans.castShadow = true;
+    trunks.instanceMatrix.needsUpdate = cans.instanceMatrix.needsUpdate = true;
+    scene.add(trunks, cans);
+  }
+
+  /* ---------- green lamp posts (glow follows time of day) ---------- */
+  {
+    const spots = [];
+    for (let y = 322; y <= 388; y += 44) { spots.push([292, y]); spots.push([308, y + 22]); }
+    for (let t = 0.1; t < 0.95; t += 0.28) spots.push([60 + (270 - 60) * t + 9, 450 + (420 - 450) * t]);
+    spots.push([330, 428]); spots.push([360, 428]); spots.push([395, 420]); spots.push([395, 470]);
+    const poleG = new THREE.CylinderGeometry(0.18, 0.26, 7, 6);
+    const poleM = new THREE.MeshStandardMaterial({ color: 0x1f4a2e, roughness: 0.8 });
+    const poles = new THREE.InstancedMesh(poleG, poleM, spots.length);
+    const headM = new THREE.MeshStandardMaterial({ color: 0x444444, emissive: 0xffd489, emissiveIntensity: 0.15, roughness: 0.6 });
+    const heads = new THREE.InstancedMesh(new THREE.SphereGeometry(0.7, 10, 8), headM, spots.length);
+    windowMats.push(headM);
+    const d = new THREE.Object3D();
+    spots.forEach(([x, y], i) => {
+      d.position.set(GX(x), 3.5, GZ(y)); d.rotation.y = 0; d.scale.set(1, 1, 1); d.updateMatrix();
+      poles.setMatrixAt(i, d.matrix);
+      d.position.set(GX(x), 7.3, GZ(y)); d.updateMatrix();
+      heads.setMatrixAt(i, d.matrix);
+    });
+    poles.instanceMatrix.needsUpdate = heads.instanceMatrix.needsUpdate = true;
+    scene.add(poles, heads);
+  }
+
+  /* ---------- benches + entry avenue (barricades, flag line) ---------- */
+  {
+    const benchM = new THREE.MeshStandardMaterial({ color: 0x6e3a2e, roughness: 1 });
+    const benchSpots = [[330, 445], [360, 445], [430, 445], [290, 415], [310, 400], [440, 345], [640, 348], [120, 430], [150, 470]];
+    const benches = new THREE.InstancedMesh(new THREE.BoxGeometry(3.5, 1, 1.2), benchM, benchSpots.length);
+    const d = new THREE.Object3D();
+    benchSpots.forEach(([x, y], i) => {
+      d.position.set(GX(x), 0.6, GZ(y)); d.rotation.y = (i % 2) * 0.4; d.scale.set(1, 1, 1); d.updateMatrix();
+      benches.setMatrixAt(i, d.matrix);
+    });
+    benches.instanceMatrix.needsUpdate = true;
+    benches.castShadow = true;
+    scene.add(benches);
+    const barM = new THREE.MeshStandardMaterial({ color: 0xc9a227, roughness: 0.8 });
+    const barDark = new THREE.MeshStandardMaterial({ color: 0x2b2f3a, roughness: 0.8 });
+    for (const [bx, by] of [[85, 432], [85, 468]]) {
+      const g = new THREE.Group();
+      const frame = new THREE.Mesh(new THREE.BoxGeometry(7, 2.4, 0.5), barM);
+      frame.position.y = 1.6; frame.castShadow = true; g.add(frame);
+      for (const off of [-2.2, 0, 2.2]) {
+        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1.6, 1.4), barDark);
+        leg.position.set(off, 0.8, 0); g.add(leg);
+      }
+      const stripe = new THREE.Mesh(new THREE.BoxGeometry(7.1, 0.7, 0.55), barDark);
+      stripe.position.y = 2.1; g.add(stripe);
+      g.position.set(GX(bx), 0, GZ(by));
+      scene.add(g);
+    }
+    const flagCols = [0xd33a2b, 0x2b5fc9, 0xe8c22a, 0x2e8b46, 0xf2f2f2];
+    for (let i = 0; i < 5; i++) {
+      const t = 0.15 + i * 0.17;
+      const fx = 60 + (270 - 60) * t - 9, fy = 450 + (420 - 450) * t;
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.2, 13, 6), barDark);
+      pole.position.set(GX(fx), 6.5, GZ(fy)); scene.add(pole);
+      const pen = new THREE.Mesh(new THREE.PlaneGeometry(3, 1.8), new THREE.MeshBasicMaterial({ color: flagCols[i], side: THREE.DoubleSide }));
+      pen.position.set(GX(fx) + 1.6, 11.4, GZ(fy)); scene.add(pen);
+    }
   }
 
   /* ---------- me + friends ---------- */

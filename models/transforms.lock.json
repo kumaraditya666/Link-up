@@ -142,5 +142,13 @@
     "y": 358,
     "ry": "0",
     "skip": false
+  },
+  {
+    "model": "fountain",
+    "id": "fountain",
+    "x": 395,
+    "y": 445,
+    "ry": "0",
+    "skip": false
   }
 ]

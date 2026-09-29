@@ -39,6 +39,7 @@ export const BUILDINGS = [
   { id: 'sac-lib', label: 'SAC · Library', x: 550, y: 395, w: 110, h: 56, c: '#6d28d9', food: false, hot: true },
   { id: 'gym', label: 'Gym', x: 632, y: 405, w: 40, h: 34, c: '#166534', food: false },
   { id: 'flag', label: 'Flag Circle', x: 300, y: 358, w: 50, h: 50, c: '#a8912f', food: false },
+  { id: 'fountain', label: 'Fountain Court', x: 395, y: 445, w: 34, h: 30, c: '#3a6a9c', food: false },
   { id: 'nescii1', label: 'NESCII 1', x: 270, y: 420, w: 110, h: 70, c: '#3f5a44', food: false },
   { id: 'main-gate', label: 'Main Gate', x: 30, y: 450, w: 40, h: 26, c: '#334155', food: false },
   { id: 'guest', label: 'Guest House', x: 400, y: 490, w: 70, h: 40, c: '#6e6252', food: false },
